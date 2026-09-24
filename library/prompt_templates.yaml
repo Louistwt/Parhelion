@@ -1,0 +1,30 @@
+# Prompt building blocks. `parhelion` composes final prompts from these — Claude only fills
+# per-shot `setting` and `action` in shotlist.json. Style wording is a HUMAN creative choice:
+# the values below are neutral drafts to be replaced after the smoke test.
+
+style: >-
+  flat 2D cartoon illustration, clean outlines, simple shading, soft even lighting,
+  vertical 9:16 composition, consistent character design
+
+# Must appear in every image prompt (lint checks for it).
+negative: >-
+  no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text
+
+framings:
+  wide: wide shot, full body, environment clearly visible
+  medium: medium shot, waist up
+  medium close-up: medium close-up, chest up
+  close-up: close-up on the face
+  over-the-shoulder: over-the-shoulder shot from behind one character toward the other
+  insert: extreme close-up detail shot of an object, no people in focus
+  two-shot: two characters side by side in frame, medium shot
+
+# Placeholders: {style} {framing} {setting} {characters} {action} {props} {negative}
+shot: >-
+  {style}. {framing}. Setting: {setting}. {characters} Action: {action}. {props}{negative}.
+
+# Placeholders: {style} {character} {negative}
+character_sheet: >-
+  {style}. Character reference sheet of one single character shown three times: front view,
+  three-quarter view and side view, full body, neutral standing pose, plain light grey background.
+  {character} {negative}.

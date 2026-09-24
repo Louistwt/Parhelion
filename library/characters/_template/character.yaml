@@ -1,0 +1,9 @@
+# Copy this folder to library/characters/<name>/ and fill in.
+name: example
+display_name: 示例
+# Visual description used verbatim in prompts. Describe look only (age, build, hair,
+# clothes, colours, distinctive props). Humans approve this text.
+prompt_block: >-
+  A man in his 30s, short black hair, round glasses, light blue shirt, dark trousers.
+# Filled by `parhelion character <name> --approve vN`. Used as reference images.
+approved_sheets: []

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storyboard — {{ script.title }}</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fcfcfb; --card: #ffffff; --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #8a8983;
+    --line: #e4e3df; --accent: #2a78d6; --warn: #b26b00; --ok: #1b7f3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --bg: #1a1a19; --card: #232322; --ink: #fff; --ink-2: #c3c2b7;
+            --ink-3: #8f8e86; --line: #3a3a38; --accent: #3987e5; --warn: #e0a040; --ok: #5cc27a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.5 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 16px 48px; }
+  header h1 { margin: 0 0 4px; font-size: 24px; }
+  .meta { color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .draft { display: inline-block; margin-top: 8px; padding: 2px 8px; border: 1px solid var(--warn);
+           color: var(--warn); border-radius: 4px; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 20px; }
+  .shot { background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+          display: flex; flex-direction: column; break-inside: avoid; }
+  .frame { aspect-ratio: 9 / 16; background: var(--line); display: flex; align-items: center; justify-content: center;
+           color: var(--ink-3); position: relative; }
+  .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tag { position: absolute; top: 6px; left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 3px;
+         background: rgba(0,0,0,.6); color: #fff; }
+  .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .head { display: flex; justify-content: space-between; font-weight: 600; }
+  .time { color: var(--ink-2); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .small { font-size: 12px; color: var(--ink-2); }
+  .line { font-size: 15px; }
+  .speaker { color: var(--ink-3); font-size: 12px; }
+  .ost { font-size: 12px; color: var(--accent); }
+  .notes { font-size: 12px; color: var(--ink-2); border-top: 1px dashed var(--line); padding-top: 6px; }
+  footer { margin-top: 28px; color: var(--ink-3); font-size: 12px; }
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    :root { color-scheme: light; --bg: #fff; --card: #fff; --ink: #000; --ink-2: #333; --ink-3: #666; --line: #ccc; }
+    .wrap { padding: 0; max-width: none; }
+    .grid { grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .line { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>{{ script.title }}</h1>
+    <div class="meta">
+      <span>{{ "普通话 Mandarin" if script.language == "mandarin" else "粤语 Cantonese" }}</span>
+      <span>{{ shots|length }} shots · ≈{{ "%.0f"|format(total_seconds) }}s (target {{ "%g"|format(script.target_seconds) }}s, timing: {{ timing_source }})</span>
+      {% if script.format %}<span>Format: {{ script.format }}</span>{% endif %}
+      <span>Claims: {{ claims.approved }} approved · {{ claims.unverified }} unverified{% if claims.rejected %} · {{ claims.rejected }} rejected{% endif %}</span>
+    </div>
+    <span class="draft">Draft storyboard — for discussion. Images are placeholders for the final animation; all text is added in editing.</span>
+  </header>
+
+  <section class="grid">
+  {% for item in shots %}{% set s = item.shot %}
+    <article class="shot">
+      <div class="frame">
+        {% if item.image_src %}
+          <img src="{{ item.image_src }}" alt="{{ s.id }} keyframe">
+          {% if item.image_state != "approved" %}<span class="tag">not approved · {{ item.image_name }}</span>{% endif %}
+        {% else %}
+          <span>no keyframe yet</span>
+        {% endif %}
+      </div>
+      <div class="body">
+        <div class="head"><span>{{ s.id }}</span><span class="time">{{ "%.1f"|format(s.start) }}–{{ "%.1f"|format(s.end) }}s · {{ "%.1f"|format(s.duration) }}s</span></div>
+        <div class="small">{{ s.framing }}{% if s.characters %} · {{ s.characters|join(", ") }}{% endif %}</div>
+        {% for l in item.lines %}
+          <div><div class="speaker">{{ l.speaker }}</div><div class="line">{{ l.text }}</div>
+          {% if l.on_screen_text %}<div class="ost">屏幕文字: {{ l.on_screen_text }}</div>{% endif %}
+          {% if l.sfx %}<div class="small">SFX: {{ l.sfx }}</div>{% endif %}</div>
+        {% endfor %}
+        {% if s.action %}<div class="small">{{ s.action }}</div>{% endif %}
+        {% if s.notes %}<div class="notes">{{ s.notes }}</div>{% endif %}
+      </div>
+    </article>
+  {% endfor %}
+  </section>
+  <footer>{{ project.slug }} · generated {{ generated }} · Parhelion</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,3 @@
+# One term per line (case-insensitive substring match). Lines starting with # are ignored.
+# Add insurer, product, policy and brand names here. Lint fails if any appear in the script
+# or in image prompts.

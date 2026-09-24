@@ -1,0 +1,33 @@
+# Candidate models per stage. The FIRST entry is the default; pick another with --model <key>.
+# Models are NOT decided yet — this list is for the smoke-test comparison (see STATE.md).
+# `text_endpoint` is used when there are no reference images, `edit_endpoint` when there are.
+# `params` are passed through to the provider unchanged. Prices live in config/prices.yaml.
+
+image:
+  - key: seedream-v4
+    provider: fal
+    text_endpoint: fal-ai/bytedance/seedream/v4/text-to-image
+    edit_endpoint: fal-ai/bytedance/seedream/v4/edit
+    verified: 2026-09-24        # params checked on fal model page
+    params:
+      image_size: {width: 1080, height: 1920}
+      enable_safety_checker: true
+
+  - key: nano-banana
+    provider: fal
+    text_endpoint: fal-ai/nano-banana
+    edit_endpoint: fal-ai/nano-banana/edit
+    verified: 2026-09-24
+    params:
+      aspect_ratio: "9:16"
+      output_format: png
+
+  - key: flux-kontext-pro
+    provider: fal
+    text_endpoint: fal-ai/flux-pro/kontext/text-to-image
+    edit_endpoint: fal-ai/flux-pro/kontext/multi
+    verified: null              # NOT verified — check endpoint ids + params before use
+    params:
+      aspect_ratio: "9:16"
+
+# Future stages (not built): tts, video, lipsync

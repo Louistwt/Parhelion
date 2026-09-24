@@ -1,0 +1,22 @@
+# secrets
+.env
+
+# generated media, ledgers, reports
+projects/
+data/
+output/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

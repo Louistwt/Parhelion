@@ -1,0 +1,24 @@
+# Deterministic pipeline settings (no AI). Change here, not in code.
+
+speech:
+  # Chinese characters per second, used for timing estimates and lint budget
+  chars_per_second:
+    mandarin: 4.5
+    cantonese: 5.0
+  max_chars_per_second: 5.0     # lint warns above this for a single line
+  pause_between_lines: 0.3      # seconds added after each line
+  min_line_seconds: 1.0
+
+shots:
+  min_seconds: 3.0
+  max_seconds: 8.0
+
+keyframes:
+  variants_per_shot: 3
+  reroll_factor: 1.2            # used for "cost to finish" forecasts only
+
+characters:
+  variants: 2
+
+report:
+  usd_to_hkd: 7.8

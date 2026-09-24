@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parhelion costs</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f5f3; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #8a8983;
+    --grid: #e4e3df; --series: #2a78d6; --ok: #1b7f3b; --warn: #a86500; --bad: #c62d2d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --bg: #121211; --surface: #1a1a19; --ink: #fff; --ink-2: #c3c2b7; --ink-3: #8f8e86;
+            --grid: #333331; --series: #3987e5; --ok: #5cc27a; --warn: #e0a040; --bad: #e66767; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0; } h2 { font-size: 15px; margin: 0 0 12px; }
+  .sub { color: var(--ink-2); margin-bottom: 20px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .tile, .card { background: var(--surface); border: 1px solid var(--grid); border-radius: 8px; padding: 14px 16px; }
+  .tile .label { color: var(--ink-2); font-size: 13px; }
+  .tile .value { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile .note { color: var(--ink-3); font-size: 12px; }
+  .meter { height: 6px; background: var(--grid); border-radius: 3px; margin: 8px 0 4px; overflow: hidden; }
+  .meter span { display: block; height: 100%; background: var(--series); border-radius: 3px; }
+  .state-near { color: var(--warn); } .state-over { color: var(--bad); } .state-ok { color: var(--ok); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin-top: 12px; }
+  .full { margin-top: 12px; }
+  svg text { fill: var(--ink-3); font-size: 10px; }
+  svg .col { fill: var(--series); } svg .col:hover { opacity: .75; }
+  svg .gridline { stroke: var(--grid); stroke-width: 1; }
+  .hbar { display: grid; grid-template-columns: minmax(90px, 38%) 1fr auto; gap: 8px; align-items: center; margin: 4px 0; }
+  .hbar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 13px; }
+  .hbar .track { height: 12px; }
+  .hbar .fill { height: 100%; background: var(--series); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .hbar .val { font-variant-numeric: tabular-nums; font-size: 13px; }
+  .empty { color: var(--ink-3); font-style: italic; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  th { color: var(--ink-2); font-weight: 500; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .failed { color: var(--bad); }
+  footer { margin-top: 24px; color: var(--ink-3); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Parhelion costs</h1>
+  <div class="sub">Generated {{ generated }} · figures in {{ currency }} · actual cost where synced from fal (<code>parhelion cost sync</code>), otherwise estimate</div>
+
+  <section class="tiles">
+    <div class="tile">
+      <div class="label">Spend this month ({{ month }})</div>
+      <div class="value">{{ fmt(month_spend) }}</div>
+      <div class="meter" role="img" aria-label="{{ '%.0f'|format(budget_pct) }}% of monthly budget"><span style="width: {{ [budget_pct, 100]|min }}%"></span></div>
+      <div class="note state-{{ budget_state }}">
+        {% if budget_state == "over" %}▲ Over budget{% elif budget_state == "near" %}● Near budget{% else %}✓ Within budget{% endif %}
+        · {{ '%.0f'|format(budget_pct) }}% of {{ fmt(budget) }}
+      </div>
+    </div>
+    <div class="tile">
+      <div class="label">fal balance</div>
+      {% if balance %}<div class="value">{{ "%.2f"|format(balance[0]) }} {{ balance[1] }}</div><div class="note">live, from fal billing API</div>
+      {% else %}<div class="value">—</div><div class="note">{{ balance_error or "run with --online and FAL_ADMIN_KEY set" }}</div>{% endif %}
+    </div>
+    <div class="tile">
+      <div class="label">All-time spend</div>
+      <div class="value">{{ fmt(all_time) }}</div>
+      <div class="note">{{ images }} images · {{ ok }} requests · {% if failed %}<span class="failed">{{ failed }} failed</span>{% else %}0 failed{% endif %}</div>
+    </div>
+    <div class="tile">
+      <div class="label">Synced with fal</div>
+      <div class="value">{{ synced }} / {{ ok }}</div>
+      <div class="note">requests with actual cost · per-run cap {{ fmt(per_run) }}</div>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>Spend per day (last 30 days)</h2>
+    {% set d = days %}
+    {% if d.peak > 0 %}
+    <div class="scroll">
+    <svg viewBox="0 0 {{ d.w }} {{ d.h }}" width="100%" role="img" aria-label="Column chart of daily spend">
+      <line class="gridline" x1="{{ d.pad_l }}" x2="{{ d.w }}" y1="{{ d.pad_t }}" y2="{{ d.pad_t }}"/>
+      <line class="gridline" x1="{{ d.pad_l }}" x2="{{ d.w }}" y1="{{ d.h - d.pad_b }}" y2="{{ d.h - d.pad_b }}"/>
+      <text x="{{ d.pad_l - 4 }}" y="{{ d.pad_t + 4 }}" text-anchor="end">{{ fmt(d.peak) }}</text>
+      <text x="{{ d.pad_l - 4 }}" y="{{ d.h - d.pad_b }}" text-anchor="end">0</text>
+      {% for c in d.cols %}{% if c.h > 0 %}
+      <rect class="col" x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="{{ [2, c.w/2]|min }}"><title>{{ c.day }}: {{ fmt(c.value) }}</title></rect>
+      {% endif %}{% endfor %}
+      <text x="{{ d.pad_l }}" y="{{ d.h - 4 }}">{{ d.first }}</text>
+      <text x="{{ d.w }}" y="{{ d.h - 4 }}" text-anchor="end">{{ d.last }}</text>
+    </svg>
+    </div>
+    {% else %}<p class="empty">No spend in the last 30 days.</p>{% endif %}
+  </section>
+
+  <section class="cards">
+    {% for title, rows in [("By project", by_project), ("By stage", by_stage), ("By model", by_model)] %}
+    <div class="card">
+      <h2>{{ title }}</h2>
+      {% for r in rows %}
+      <div class="hbar" title="{{ r.label }}: {{ fmt(r.value) }}">
+        <span class="name">{{ r.label }}</span>
+        <span class="track"><span class="fill" style="display:block; width: {{ r.pct }}%"></span></span>
+        <span class="val">{{ fmt(r.value) }}</span>
+      </div>
+      {% else %}<p class="empty">No spend yet.</p>{% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="card full">
+    <h2>Forecast: cost to finish keyframes</h2>
+    {% if finish %}
+    <div class="scroll"><table>
+      <tr><th>Project</th><th>Basis</th><th>Model</th><th class="num">Images</th><th class="num">Estimate</th></tr>
+      {% for r in finish %}<tr><td>{{ r.project }}</td><td>{{ r.basis }}</td><td>{{ r.model }}</td><td class="num">{{ r.images }}</td><td class="num">{{ fmt(r.est) }}</td></tr>{% endfor %}
+    </table></div>
+    <p class="sub" style="margin:8px 0 0">Variants per shot and reroll factor come from config/pipeline.yaml; price from config/prices.yaml.</p>
+    {% else %}<p class="empty">No projects yet.</p>{% endif %}
+  </section>
+
+  <section class="card full">
+    <h2>Estimate vs actual (synced requests)</h2>
+    {% if est_vs_actual %}
+    <div class="scroll"><table>
+      <tr><th>Model</th><th class="num">Requests</th><th class="num">Estimated</th><th class="num">Actual</th><th class="num">Difference</th></tr>
+      {% for model, r in est_vs_actual %}<tr><td>{{ model }}</td><td class="num">{{ r.n }}</td><td class="num">{{ fmt(r.est) }}</td><td class="num">{{ fmt(r.actual) }}</td><td class="num">{{ fmt(r.actual - r.est) }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Nothing synced yet. Run <code>parhelion cost sync</code> (needs FAL_ADMIN_KEY).</p>{% endif %}
+  </section>
+
+  <section class="card full">
+    <h2>Recent requests</h2>
+    {% if recent %}
+    <div class="scroll"><table>
+      <tr><th>Time (UTC)</th><th>Project</th><th>Stage</th><th>Model</th><th class="num">Units</th><th class="num">Cost</th><th>Status</th></tr>
+      {% for e in recent %}<tr>
+        <td>{{ e.ts[:16].replace("T", " ") }}</td><td>{{ e.project }}</td><td>{{ e.stage }}</td><td>{{ e.model }}</td>
+        <td class="num">{{ "%g"|format(e.units) }}</td>
+        <td class="num">{{ fmt(entry_cost(e)) }}{% if e.actual_cost_usd is none and e.status == "ok" %} <span title="estimate">*</span>{% endif %}</td>
+        <td class="{{ 'failed' if e.status == 'failed' else '' }}" title="{{ e.note }}">{{ e.status }}</td>
+      </tr>{% endfor %}
+    </table></div>
+    <p class="sub" style="margin:8px 0 0">* estimate, not yet synced</p>
+    {% else %}<p class="empty">No requests logged yet.</p>{% endif %}
+  </section>
+
+  <footer>Ledger: data/costs.jsonl · Parhelion</footer>
+</div>
+</body>
+</html>

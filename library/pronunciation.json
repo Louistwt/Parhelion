@@ -1,0 +1,4 @@
+{
+  "_comment": "term -> phonetic/SSML hint. Applied before TTS (future stage).",
+  "terms": {}
+}
