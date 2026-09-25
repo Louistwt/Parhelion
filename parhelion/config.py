@@ -11,6 +11,10 @@ import yaml
 from dotenv import load_dotenv
 
 
+class UserError(Exception):
+    """A problem the operator can fix (bad name, missing file, unknown model). Shown as a message, not a traceback."""
+
+
 def find_root(start: Path | None = None) -> Path:
     """Repo root = PARHELION_ROOT, else the nearest parent containing config/models.yaml."""
     if env := os.environ.get("PARHELION_ROOT"):
@@ -65,7 +69,7 @@ def _float_env(name: str, default: float) -> float:
     try:
         return float(raw) if raw else default
     except ValueError:
-        raise SystemExit(f"{name} must be a number, got {raw!r}")
+        raise UserError(f"{name} must be a number, got {raw!r}")
 
 
 def load_settings(root: Path) -> Settings:
@@ -109,13 +113,35 @@ def image_models(root: Path) -> list[dict]:
 def image_model(root: Path, key: str | None) -> dict:
     models = image_models(root)
     if not models:
-        raise SystemExit("No image models configured in config/models.yaml")
+        raise UserError("No image models configured in config/models.yaml")
     if key is None:
         return models[0]
     for m in models:
         if m["key"] == key:
             return m
-    raise SystemExit(f"Unknown model {key!r}. Options: {', '.join(m['key'] for m in models)}")
+    raise UserError(f"Unknown model {key!r}. Options: {', '.join(m['key'] for m in models)}")
+
+
+def stage_models(root: Path, kind: str) -> list[dict]:
+    """Candidates for a stage: image | tts | video | lipsync. First entry is the default."""
+    return config_yaml(root, "models.yaml").get(kind, [])
+
+
+def stage_model(root: Path, kind: str, key: str | None) -> dict:
+    models = stage_models(root, kind)
+    if not models:
+        raise UserError(f"No {kind} models configured in config/models.yaml")
+    if key is None:
+        return models[0]
+    for m in models:
+        if m["key"] == key:
+            return m
+    raise UserError(f"Unknown {kind} model {key!r}. Options: {', '.join(m['key'] for m in models)}")
+
+
+def voices(root: Path) -> dict:
+    path = root / "library" / "voices.yaml"
+    return read_yaml(path) if path.exists() else {}
 
 
 def prompt_templates(root: Path) -> dict:

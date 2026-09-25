@@ -28,3 +28,13 @@ character_sheet: >-
   {style}. Character reference sheet of one single character shown three times: front view,
   three-quarter view and side view, full body, neutral standing pose, plain light grey background.
   {character} {negative}.
+
+# ---------- image-to-video ----------
+# Placeholders: {motion} {camera} {negative}. Claude fills a shot's `motion_prompt` (what moves) and optionally
+# `camera` words; keep moves simple — complex motion causes character drift.
+motion: >-
+  {motion}. Camera: {camera}. Keep every character's face, clothes and colours exactly as in the first frame.
+  Smooth, natural, subtle movement.
+default_camera: static camera
+motion_negative: >-
+  text, letters, captions, subtitles, watermark, logo, extra fingers, deformed face, morphing, flicker, blur

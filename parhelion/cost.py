@@ -118,6 +118,31 @@ def check_budget(run_total: float, settings: Settings, month_spent: float) -> li
     return warnings
 
 
+def budget_status(items: list[EstimateItem], settings: Settings, ledger: Ledger) -> dict:
+    """Everything a confirmation screen needs. `blocked_reason` is None when the run may proceed."""
+    run_total = total(items)
+    month_spent = ledger.month_spend()
+    warnings: list[str] = []
+    blocked: str | None = None
+    try:
+        warnings = check_budget(run_total, settings, month_spent)
+    except BudgetError as e:
+        blocked = str(e)
+    return {
+        "items": [
+            {"label": i.label, "endpoint": i.endpoint, "units": i.units, "unit": i.unit,
+             "unit_price": i.unit_price, "cost": i.cost}
+            for i in items
+        ],
+        "total": run_total,
+        "month_spent": month_spent,
+        "monthly_budget": settings.monthly_budget,
+        "max_per_run": settings.max_spend_per_run,
+        "warnings": warnings,
+        "blocked_reason": blocked,
+    }
+
+
 def print_estimate(items: list[EstimateItem]) -> None:
     typer.echo("Estimated cost:")
     for i in items:
@@ -130,15 +155,14 @@ def confirm_spend(
 ) -> bool:
     """Print estimate, enforce budgets, ask for confirmation. Returns True if the run may proceed."""
     print_estimate(items)
-    run_total = total(items)
-    month_spent = ledger.month_spend()
-    typer.echo(f"  Month to date: ${month_spent:.2f} of ${settings.monthly_budget:.2f}")
-    try:
-        for w in check_budget(run_total, settings, month_spent):
-            typer.secho(w, fg="yellow")
-    except BudgetError as e:
-        typer.secho(f"Blocked: {e}", fg="red")
+    status = budget_status(items, settings, ledger)
+    typer.echo(f"  Month to date: ${status['month_spent']:.2f} of ${settings.monthly_budget:.2f}")
+    for w in status["warnings"]:
+        typer.secho(w, fg="yellow")
+    if status["blocked_reason"]:
+        typer.secho(f"Blocked: {status['blocked_reason']}", fg="red")
         return False
+    run_total = status["total"]
     if dry_run:
         typer.secho("Dry run — nothing was sent.", fg="cyan")
         return False

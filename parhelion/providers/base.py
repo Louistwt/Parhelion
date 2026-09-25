@@ -47,7 +47,22 @@ class ImageProvider(ABC):
     def generate(self, job: ImageJob, endpoint: str) -> ImageResult: ...
 
 
-# Future stages (not built in storyboard scope):
-# class TTSProvider(ABC): ...
-# class VideoProvider(ABC): ...
-# class LipSyncProvider(ABC): ...
+@dataclass
+class MediaResult:
+    """Result of a non-image job (speech, video, lip-sync)."""
+
+    request_id: str
+    endpoint: str
+    outputs: list[GeneratedImage]  # same shape: bytes + extension
+    request_payload: dict
+    raw_response: dict
+
+
+class MediaProvider(ABC):
+    """Runs any queue-based model: `payload` is sent as-is; `files` (field -> local path) are uploaded first
+    and their URLs put into the payload. `expect` names the output field ("audio" or "video")."""
+
+    name: str
+
+    @abstractmethod
+    def run_media(self, endpoint: str, payload: dict, files: dict[str, Path], expect: str) -> MediaResult: ...

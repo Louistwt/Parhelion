@@ -87,7 +87,8 @@ def cost_to_finish(paths: Paths) -> list[dict]:
     return rows
 
 
-def build_context(paths: Paths, settings: Settings, balance: tuple[float, str] | None, balance_error: str | None) -> dict:
+def compute(paths: Paths, settings: Settings) -> dict:
+    """Pure data for the dashboard (JSON-safe). Used by the HTML report and the UI API."""
     entries = Ledger(paths.ledger).entries()
     now = datetime.now(timezone.utc)
     month = now.strftime("%Y-%m")
@@ -112,22 +113,31 @@ def build_context(paths: Paths, settings: Settings, balance: tuple[float, str] |
     failed = sum(1 for e in real if e.status == "failed")
     images = sum(e.units for e in real if e.status == "ok")
 
-    cfg = pipeline_cfg(paths.root)
-    fmt = money_fmt(settings.currency, float(cfg["report"]["usd_to_hkd"]))
     budget_pct = (month_spend / settings.monthly_budget * 100) if settings.monthly_budget else 0
     budget_state = "over" if budget_pct >= 100 else "near" if budget_pct >= 80 else "ok"
-
+    cfg = pipeline_cfg(paths.root)
     return {
-        "generated": utcnow(), "currency": settings.currency, "fmt": fmt, "month": month,
-        "month_spend": month_spend, "budget": settings.monthly_budget, "budget_pct": budget_pct,
+        "generated": utcnow(), "currency": settings.currency, "usd_to_hkd": float(cfg["report"]["usd_to_hkd"]),
+        "month": month, "month_spend": month_spend, "budget": settings.monthly_budget, "budget_pct": budget_pct,
         "budget_state": budget_state, "per_run": settings.max_spend_per_run,
         "all_time": all_time, "images": int(images), "ok": ok, "failed": failed, "synced": synced,
-        "balance": balance, "balance_error": balance_error,
         "days": _day_svg(_days(real)),
         "by_project": _bars(by_project), "by_stage": _bars(by_stage), "by_model": _bars(by_model),
-        "est_vs_actual": sorted(est_vs_actual.items()),
+        "est_vs_actual": [{"model": k, **v} for k, v in sorted(est_vs_actual.items())],
         "finish": cost_to_finish(paths),
-        "recent": list(reversed(entries[-50:])),
+        "recent": [{**e.model_dump(), "cost": entry_cost(e)} for e in reversed(entries[-50:])],
+    }
+
+
+def build_context(paths: Paths, settings: Settings, balance: tuple[float, str] | None, balance_error: str | None) -> dict:
+    data = compute(paths, settings)
+    recent = list(reversed(Ledger(paths.ledger).entries()[-50:]))
+    return {
+        **data,
+        "fmt": money_fmt(settings.currency, data["usd_to_hkd"]),
+        "balance": balance, "balance_error": balance_error,
+        "est_vs_actual": [(r["model"], r) for r in data["est_vs_actual"]],
+        "recent": recent,
         "entry_cost": entry_cost,
     }
 

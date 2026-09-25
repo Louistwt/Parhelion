@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -13,9 +14,9 @@ from . import project as proj
 from .config import Paths, banned_terms, find_root, image_models, load_settings, pipeline_cfg, prices, prompt_templates
 from .cost import Ledger, entry_cost, sync_actuals
 from .providers.base import ProviderError
-from .versioning import IMAGE_EXTS, all_paths, parse_version
+from .versioning import IMAGE_EXTS, all_paths, find_version, parse_version
 
-app = typer.Typer(no_args_is_help=True, add_completion=False, help="Parhelion — script → shot list → keyframes → storyboard.")
+app = typer.Typer(no_args_is_help=True, add_completion=False, help="Parhelion — script → voice → shots → keyframes → storyboard → clips → rough cut.")
 cost_app = typer.Typer(help="Cost ledger: summary and sync with fal billing.")
 prices_app = typer.Typer(help="Price table checks.")
 app.add_typer(cost_app, name="cost")
@@ -35,6 +36,20 @@ def _fal_factory(settings):
             raise typer.BadParameter("FAL_KEY is not set in .env")
         return FalImageProvider(settings.fal_key)
     return make
+
+
+def _run_plan(paths, settings, plan, *, yes: bool, dry_run: bool):
+    """CLI spend flow: notes → estimate → budget guard → confirm → execute. Returns results or None."""
+    from .cost import confirm_spend
+    from .stages.imagegen import cli_progress
+    from .stages.imagegen_plan import execute
+
+    for note in plan.notes:
+        typer.secho(f"Note: {note}", fg="yellow")
+    ledger = Ledger(paths.ledger)
+    if not confirm_spend(plan.items, settings, ledger, yes=yes, dry_run=dry_run):
+        return None
+    return execute(plan, _fal_factory(settings)(), ledger, on_progress=cli_progress)
 
 
 # ---------------- project ----------------
@@ -152,8 +167,9 @@ def character(
         typer.echo(f"Approved {name}/{f} as reference sheet.")
         return
     n = n or int(pipeline_cfg(paths.root)["characters"]["variants"])
-    C.generate(paths, settings, _fal_factory(settings), name, n=n, model_key=model, use_approved=use_approved,
-               seed=seed, yes=yes, dry_run=dry_run)
+    plan = C.build(paths, name, n=n, model_key=model, use_approved=use_approved, seed=seed)
+    typer.echo(f"Prompt: {plan.jobs[0].job.prompt}")
+    _run_plan(paths, settings, plan, yes=yes, dry_run=dry_run)
 
 
 @app.command()
@@ -173,21 +189,141 @@ def keyframes(
     paths, settings = _ctx()
     folder = proj.resolve(paths, project)
     n = n or int(pipeline_cfg(paths.root)["keyframes"]["variants_per_shot"])
-    K.generate(paths, settings, _fal_factory(settings), folder, shot_id=shot, n=n, model_key=model, seed=seed,
-               include_approved=include_approved, yes=yes, dry_run=dry_run)
+    plan = K.build(paths, folder, shot_ids=[shot] if shot else None, n=n, model_key=model, seed=seed,
+                   include_approved=include_approved)
+    if not plan.jobs:
+        typer.echo("Nothing to do — every shot already has an approved keyframe (use --shot or --all).")
+        return
+    results = _run_plan(paths, settings, plan, yes=yes, dry_run=dry_run)
+    if results is not None:
+        K.after_run(folder)
+        ok = sum(1 for files in results.values() if files)
+        typer.echo(f"Done: {ok}/{len(plan.jobs)} requests succeeded. Review keyframes/, then `parhelion approve`.")
 
 
 @app.command()
 def approve(project: str, kind: str, item: str, version: str):
-    """Approve a variant, e.g. `parhelion approve demo-b keyframe S03 v2`."""
+    """Approve a take: `approve demo-b keyframe S03 v2` · `audio L01 v2` · `clip S03 v1` · `lipsync S03 v1`."""
+    from .stages import clips as CL
     from .stages import keyframes as K
+    from .stages import voice as VO
 
     paths, _ = _ctx()
     folder = proj.resolve(paths, project)
-    if kind != "keyframe":
-        raise typer.BadParameter("Only 'keyframe' can be approved in the storyboard scope (characters: parhelion character <name> --approve vN)")
-    f = K.approve(folder, item, parse_version(version))
-    typer.echo(f"Approved {item} → keyframes/{f}")
+    v = parse_version(version)
+    if kind == "keyframe":
+        typer.echo(f"Approved {item} → keyframes/{K.approve(folder, item, v)}")
+    elif kind == "audio":
+        typer.echo(f"Approved {item} → audio/{VO.approve(folder, item, v)}")
+    elif kind in ("clip", "lipsync"):
+        stem = item if kind == "clip" else f"{item}_lipsync"
+        f = find_version(folder / "clips", stem, v, CL.VIDEO_EXTS)
+        if f is None:
+            raise typer.BadParameter(f"No clips/{stem}_v{v}")
+        typer.echo(f"Approved {item} → clips/{CL.approve(folder, item, f.name)}")
+    else:
+        raise typer.BadParameter("kind must be keyframe, audio, clip or lipsync (characters: parhelion character <name> --approve vN)")
+
+
+# ---------------- video stages ----------------
+
+
+@app.command()
+def voice(
+    project: str,
+    line: Optional[str] = typer.Option(None, "--line", help="Only this line, e.g. L03"),
+    model: Optional[str] = typer.Option(None, "--model", help="TTS model key from config/models.yaml"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    yes: bool = typer.Option(False, "--yes", "-y"),
+):
+    """Generate a voice take per script line (paid, cheap). Then approve takes and run `voice-track`."""
+    from .stages import voice as VO
+
+    paths, settings = _ctx()
+    folder = proj.resolve(paths, project)
+    plan = VO.build(paths, folder, line_ids=[line] if line else None, model_key=model)
+    if _run_plan(paths, settings, plan, yes=yes, dry_run=dry_run) is not None:
+        proj.set_stage(folder, "voice", "in_progress")
+
+
+@app.command("voice-track")
+def voice_track(project: str, approve_latest: bool = typer.Option(False, "--approve-latest", help="Approve the newest take of any unapproved line first")):
+    """Build real timing + one voice track from the approved takes (free)."""
+    from .stages import voice as VO
+
+    paths, _ = _ctx()
+    folder = proj.resolve(paths, project)
+    if approve_latest:
+        VO.approve_latest(folder, proj.load_script(folder))
+    timing, track = VO.build_track(paths, folder)
+    typer.echo(f"Wrote audio/{track.name} · timing.json (tts) · total {timing.total_seconds:.2f}s")
+
+
+@app.command()
+def retime(project: str):
+    """Move shot boundaries onto the real line timing (free, deterministic)."""
+    from .stages import retime as RT
+
+    paths, _ = _ctx()
+    new, issues = RT.run(paths, proj.resolve(paths, project))
+    for s in new.shots:
+        typer.echo(f"  {s.id}  {s.start:6.2f}–{s.end:6.2f}s  ({s.duration:.2f}s)")
+    for i in issues:
+        typer.secho(f"  WARN {i}", fg="yellow")
+
+
+@app.command()
+def clips(
+    project: str,
+    shot: Optional[str] = typer.Option(None, "--shot", help="Only this shot, e.g. S03"),
+    n: Optional[int] = typer.Option(None, "--n", help="Takes per shot (default from config/pipeline.yaml)"),
+    model: Optional[str] = typer.Option(None, "--model", help="Video model key from config/models.yaml"),
+    include_approved: bool = typer.Option(False, "--all", help="Include shots that already have an approved clip"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    yes: bool = typer.Option(False, "--yes", "-y"),
+):
+    """Animate approved keyframes into clips (paid — the expensive stage)."""
+    from .stages import clips as CL
+
+    paths, settings = _ctx()
+    folder = proj.resolve(paths, project)
+    n = n or int(pipeline_cfg(paths.root)["clips"]["variants_per_shot"])
+    plan = CL.build(paths, folder, shot_ids=[shot] if shot else None, n=n, model_key=model, include_approved=include_approved)
+    if not plan.jobs:
+        for note in plan.notes:
+            typer.secho(f"Note: {note}", fg="yellow")
+        typer.echo("Nothing to generate.")
+        return
+    if _run_plan(paths, settings, plan, yes=yes, dry_run=dry_run) is not None:
+        CL.after_run(folder)
+
+
+@app.command()
+def lipsync(
+    project: str,
+    shot: Optional[str] = typer.Option(None, "--shot"),
+    model: Optional[str] = typer.Option(None, "--model", help="Lip-sync model key from config/models.yaml"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    yes: bool = typer.Option(False, "--yes", "-y"),
+):
+    """Lip-sync approved clips of shots marked on_camera_speech (paid)."""
+    from .stages import clips as CL
+
+    paths, settings = _ctx()
+    plan = CL.build_lipsync(paths, proj.resolve(paths, project), shot_ids=[shot] if shot else None, model_key=model)
+    _run_plan(paths, settings, plan, yes=yes, dry_run=dry_run)
+
+
+@app.command()
+def assemble(project: str):
+    """Render the rough cut (clips or keyframe stills + voice + subtitles) and the CapCut folder (free)."""
+    from .stages import assemble as AS
+
+    paths, _ = _ctx()
+    s = AS.assemble(paths, proj.resolve(paths, project))
+    typer.echo(f"output/{s['rough_cut']} ({s['duration']:.1f}s) · output/{s['clean']} · output/{s['srt']} · output/{s['capcut']}/")
+    for r in s["shots"]:
+        typer.echo(f"  {r['shot']}  {r['start']:6.2f}–{r['end']:6.2f}s  {r['source']}")
 
 
 @app.command()
@@ -297,5 +433,61 @@ def prices_check():
     typer.echo("All prices match." if not mismatch else f"{mismatch} difference(s) — update config/prices.yaml and its `verified` date.")
 
 
+@app.command()
+def ui(
+    port: int = typer.Option(8765, "--port"),
+    no_browser: bool = typer.Option(False, "--no-browser"),
+    reload: bool = typer.Option(False, "--reload", help="Auto-reload the API on code changes (development)"),
+):
+    """Start the local UI at http://127.0.0.1:<port> (this machine only)."""
+    import uvicorn
+
+    from .api.app import dist_dir
+
+    paths, _ = _ctx()
+    url = f"http://127.0.0.1:{port}"
+    if not reload and not (dist_dir(paths.root) / "index.html").exists():
+        typer.secho(
+            "The web UI is not built yet. Run:\n  npm --prefix web install && npm --prefix web run build\n"
+            "(The API still starts; for UI development use `npm --prefix web run dev`.)",
+            fg="yellow",
+        )
+    if not no_browser:
+        _open_browser_later(url)
+    typer.echo(f"Parhelion UI → {url}   (Ctrl+C to stop)")
+    uvicorn.run("parhelion.api.app:create_app", factory=True, host="127.0.0.1", port=port, reload=reload,
+                reload_dirs=[str(Path(__file__).resolve().parent)] if reload else None, log_level="warning")
+
+
+def _open_browser_later(url: str) -> None:
+    import shutil
+    import subprocess
+    import threading
+    import webbrowser
+
+    def go():
+        for cmd in ("wslview", "explorer.exe"):
+            if shutil.which(cmd):
+                try:
+                    subprocess.Popen([cmd, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    return
+                except OSError:
+                    pass
+        webbrowser.open(url)
+
+    threading.Timer(1.2, go).start()
+
+
+def main() -> None:
+    """Console entry point: user errors print as a message instead of a traceback."""
+    from .config import UserError
+
+    try:
+        app()
+    except UserError as e:
+        typer.secho(str(e), fg="red", err=True)
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
-    app()
+    main()

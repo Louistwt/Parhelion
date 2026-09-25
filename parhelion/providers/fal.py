@@ -7,6 +7,7 @@ Verified 2026-09-24 against fal docs:
   billing GET  https://api.fal.ai/v1/account/billing?expand=credits   (ADMIN key)
   events  GET  https://api.fal.ai/v1/models/billing-events            (ADMIN key)
   pricing GET  https://api.fal.ai/v1/models/pricing?endpoint_id=...
+  upload  POST https://rest.alpha.fal.ai/storage/upload/initiate -> upload_url (PUT bytes), file_url
 Auth header: "Authorization: Key <key>".
 """
 
@@ -20,10 +21,16 @@ from pathlib import Path
 import httpx
 from PIL import Image
 
-from .base import GeneratedImage, ImageJob, ImageProvider, ImageResult, ProviderError
+from .base import GeneratedImage, ImageJob, ImageProvider, ImageResult, MediaProvider, MediaResult, ProviderError
 
 QUEUE_URL = "https://queue.fal.run"
 API_URL = "https://api.fal.ai/v1"
+UPLOAD_URL = "https://rest.alpha.fal.ai/storage/upload/initiate"
+
+CONTENT_TYPES = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
+    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4", ".mp4": "video/mp4", ".mov": "video/quicktime",
+}
 
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
@@ -44,6 +51,11 @@ def reference_data_uri(path: Path, max_side: int = 1536) -> str:
 
 def _ext_from(content_type: str | None, url: str) -> str:
     ct = (content_type or "").lower()
+    low = url.lower().split("?")[0]
+    for ext, kind in ((".mp4", "video/mp4"), (".mov", "quicktime"), (".webm", "webm"), (".mp3", "audio/mpeg"),
+                      (".wav", "wav"), (".flac", "flac"), (".m4a", "audio/mp4")):
+        if kind in ct or low.endswith(ext):
+            return ext
     if "jpeg" in ct or "jpg" in ct or url.lower().endswith((".jpg", ".jpeg")):
         return ".jpg"
     if "webp" in ct or url.lower().endswith(".webp"):
@@ -51,7 +63,9 @@ def _ext_from(content_type: str | None, url: str) -> str:
     return ".png"
 
 
-class FalImageProvider(ImageProvider):
+class FalImageProvider(ImageProvider, MediaProvider):
+    """fal queue client for images (generate) and audio/video (run_media)."""
+
     name = "fal"
 
     def __init__(
@@ -108,18 +122,12 @@ class FalImageProvider(ImageProvider):
 
     # -- main --
 
-    def generate(self, job: ImageJob, endpoint: str) -> ImageResult:
-        payload: dict = {"prompt": job.prompt, **job.params, "num_images": job.num_images}
-        if job.seed is not None:
-            payload["seed"] = job.seed
-        if job.reference_images:
-            payload["image_urls"] = [reference_data_uri(p) for p in job.reference_images]
-
+    def _run_queue(self, endpoint: str, payload: dict) -> tuple[str, dict]:
+        """Submit, poll until COMPLETED, return (request_id, response body)."""
         sub = self._submit(endpoint, payload)
         request_id = sub.get("request_id")
         status_url = sub.get("status_url") or f"{QUEUE_URL}/{endpoint}/requests/{request_id}/status"
         response_url = sub.get("response_url") or f"{QUEUE_URL}/{endpoint}/requests/{request_id}"
-
         deadline = time.monotonic() + self.timeout_s
         while True:
             st = self._get(status_url)
@@ -131,23 +139,63 @@ class FalImageProvider(ImageProvider):
             if time.monotonic() > deadline:
                 raise ProviderError(f"Timed out after {self.timeout_s:.0f}s (status {status})", request_id)
             time.sleep(self.poll_interval_s)
-
         res = self._get(response_url)
         if res.status_code >= 400:
             raise ProviderError(f"Job failed: HTTP {res.status_code}: {res.text[:500]}", request_id)
-        body = res.json()
+        return request_id, res.json()
 
-        images: list[GeneratedImage] = []
-        for img in body.get("images", []):
-            url = img.get("url", "")
-            if url.startswith("data:"):
-                header, b64 = url.split(",", 1)
-                images.append(GeneratedImage(base64.b64decode(b64), _ext_from(header, "")))
-            else:
-                dl = self._get(url)
-                if dl.status_code >= 400:
-                    raise ProviderError(f"Download failed: HTTP {dl.status_code}", request_id)
-                images.append(GeneratedImage(dl.content, _ext_from(img.get("content_type") or dl.headers.get("content-type"), url)))
+    def _download(self, url: str, content_type: str | None, request_id: str) -> GeneratedImage:
+        if url.startswith("data:"):
+            header, b64 = url.split(",", 1)
+            return GeneratedImage(base64.b64decode(b64), _ext_from(header, ""))
+        dl = self._get(url)
+        if dl.status_code >= 400:
+            raise ProviderError(f"Download failed: HTTP {dl.status_code}", request_id)
+        return GeneratedImage(dl.content, _ext_from(content_type or dl.headers.get("content-type"), url))
+
+    def upload(self, path: Path) -> str:
+        """Upload a local file to fal storage and return its URL. Images fall back to an inline data URI."""
+        ctype = CONTENT_TYPES.get(path.suffix.lower(), "application/octet-stream")
+        try:
+            r = self.client.post(UPLOAD_URL, params={"storage_type": "fal-cdn-v3"}, headers=_auth(self.key),
+                                 json={"content_type": ctype, "file_name": path.name})
+            if r.status_code >= 400:
+                raise ProviderError(f"upload initiate HTTP {r.status_code}: {r.text[:200]}")
+            info = r.json()
+            put = self.client.put(info["upload_url"], content=path.read_bytes(), headers={"Content-Type": ctype})
+            if put.status_code >= 400:
+                raise ProviderError(f"upload PUT HTTP {put.status_code}")
+            return info["file_url"]
+        except (httpx.HTTPError, KeyError, ProviderError) as e:
+            if ctype.startswith("image/"):
+                return reference_data_uri(path)
+            raise ProviderError(f"Could not upload {path.name} to fal storage: {e}")
+
+    def run_media(self, endpoint: str, payload: dict, files: dict[str, Path], expect: str) -> MediaResult:
+        sent = dict(payload)
+        body_payload = dict(payload)
+        for field, path in files.items():
+            body_payload[field] = self.upload(path)
+            sent[field] = str(path)
+        request_id, body = self._run_queue(endpoint, body_payload)
+        item = body.get(expect)
+        if isinstance(item, list):
+            item = item[0] if item else None
+        if not isinstance(item, dict) or not item.get("url"):
+            raise ProviderError(f"No {expect} in response: {str(body)[:300]}", request_id)
+        out = self._download(item["url"], item.get("content_type"), request_id)
+        return MediaResult(request_id=request_id, endpoint=endpoint, outputs=[out], request_payload=sent,
+                           raw_response={k: v for k, v in body.items() if k != expect})
+
+    def generate(self, job: ImageJob, endpoint: str) -> ImageResult:
+        payload: dict = {"prompt": job.prompt, **job.params, "num_images": job.num_images}
+        if job.seed is not None:
+            payload["seed"] = job.seed
+        if job.reference_images:
+            payload["image_urls"] = [reference_data_uri(p) for p in job.reference_images]
+
+        request_id, body = self._run_queue(endpoint, payload)
+        images = [self._download(img.get("url", ""), img.get("content_type"), request_id) for img in body.get("images", [])]
         if not images:
             raise ProviderError(f"No images in response: {str(body)[:300]}", request_id)
 
@@ -162,6 +210,9 @@ class FalImageProvider(ImageProvider):
             request_payload=sent,
             raw_response={k: v for k, v in body.items() if k != "images"},
         )
+
+
+FalProvider = FalImageProvider  # images + audio + video
 
 
 class FalPlatform:

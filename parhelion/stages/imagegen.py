@@ -5,28 +5,46 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
-import typer
-
-from ..cost import Ledger
+from ..cost import EstimateItem, Ledger
 from ..providers.base import ImageJob, ImageProvider, ProviderError
 from ..schemas import CostEntry, utcnow
 from ..versioning import IMAGE_EXTS, next_version
 
+# on_progress(event, message, data) — event is "start" | "saved" | "failed"
+Progress = Callable[[str, str, dict], None]
+
+
+def _noop(event: str, message: str, data: dict) -> None:
+    pass
+
 
 @dataclass
 class PlannedJob:
-    label: str  # e.g. "S03" or "sheet"
+    label: str  # e.g. "S03" or "xiaowang sheet"
     out_dir: Path
     stem: str  # file stem, versions appended
     endpoint: str
     model_key: str
     job: ImageJob
     unit_price: float
+    unit: str = "image"
+
+    @property
+    def estimate(self) -> EstimateItem:
+        return EstimateItem(self.label, self.endpoint, self.job.num_images, self.unit, self.unit_price)
+
+    def execute(self, provider, ledger: Ledger, *, project: str, stage: str, on_progress: "Progress" = None) -> list[Path]:
+        return run(self, provider, ledger, project=project, stage=stage, on_progress=on_progress or _noop)
 
 
-def run(planned: PlannedJob, provider: ImageProvider, ledger: Ledger, *, project: str, stage: str) -> list[Path]:
+def run(
+    planned: PlannedJob, provider: ImageProvider, ledger: Ledger, *, project: str, stage: str,
+    on_progress: Progress = _noop,
+) -> list[Path]:
     """Run one request. Never raises on provider failure: logs it and returns []."""
+    on_progress("start", f"{planned.label}: generating {planned.job.num_images} image(s)", {"label": planned.label})
     try:
         result = provider.generate(planned.job, planned.endpoint)
     except ProviderError as e:
@@ -36,7 +54,7 @@ def run(planned: PlannedJob, provider: ImageProvider, ledger: Ledger, *, project
                 units=0, est_cost_usd=0.0, request_id=e.request_id, status="failed", note=str(e)[:500],
             )
         )
-        typer.secho(f"  {planned.label}: FAILED — {e}", fg="red")
+        on_progress("failed", f"{planned.label}: FAILED — {e}", {"label": planned.label, "error": str(e)})
         return []
 
     n = len(result.images)
@@ -71,5 +89,14 @@ def run(planned: PlannedJob, provider: ImageProvider, ledger: Ledger, *, project
         }
         path.with_suffix(".json").write_text(json.dumps(sidecar, ensure_ascii=False, indent=2), encoding="utf-8")
         saved.append(path)
-    typer.secho(f"  {planned.label}: saved {', '.join(p.name for p in saved)}", fg="green")
+    on_progress("saved", f"{planned.label}: saved {', '.join(p.name for p in saved)}",
+                {"label": planned.label, "files": [p.name for p in saved]})
     return saved
+
+
+def cli_progress(event: str, message: str, data: dict) -> None:
+    import typer
+
+    color = {"saved": "green", "failed": "red"}.get(event)
+    if event != "start":
+        typer.secho(f"  {message}", fg=color)

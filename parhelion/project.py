@@ -9,7 +9,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from .config import Paths
+from .config import Paths, UserError
 from .schemas import Approval, Project, Script, ShotList, Timing
 from .versioning import latest_path
 
@@ -58,14 +58,14 @@ def resolve(paths: Paths, name: str) -> Path:
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
-        raise SystemExit(f"Ambiguous project {name!r}: {', '.join(m.name for m in matches)}")
-    raise SystemExit(f"Project {name!r} not found under {paths.projects}")
+        raise UserError(f"Ambiguous project {name!r}: {', '.join(m.name for m in matches)}")
+    raise UserError(f"Project {name!r} not found under {paths.projects}")
 
 
 def create(paths: Paths, slug: str, language: str, seconds: float) -> Path:
     folder = paths.projects / f"{date.today().isoformat()}-{slug}"
     if folder.exists():
-        raise SystemExit(f"{folder} already exists")
+        raise UserError(f"{folder} already exists")
     for sub in ("keyframes", "output"):
         (folder / sub).mkdir(parents=True)
     save(folder / "project.json", Project(slug=slug, language=language, target_seconds=seconds))
@@ -98,7 +98,7 @@ def load_project(folder: Path) -> Project:
 def load_script(folder: Path) -> Script:
     path = folder / "script.json"
     if not path.exists():
-        raise SystemExit(f"No script.json in {folder.name} — agree the script first (see CLAUDE.md).")
+        raise UserError(f"No script.json in {folder.name} — agree the script first (see CLAUDE.md).")
     return load(path, Script)
 
 
@@ -110,7 +110,7 @@ def load_timing(folder: Path) -> Timing | None:
 def load_shotlist(folder: Path) -> ShotList:
     path = folder / "shotlist.json"
     if not path.exists():
-        raise SystemExit(f"No shotlist.json in {folder.name}.")
+        raise UserError(f"No shotlist.json in {folder.name}.")
     return load(path, ShotList)
 
 

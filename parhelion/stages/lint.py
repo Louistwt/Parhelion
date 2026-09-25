@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from ..config import Paths
+from ..config import Paths, UserError
 from ..schemas import Character, Script, ShotList, Timing
 from .prompts import compose_shot_prompt, load_character
 from .timing import estimate, speech_chars
@@ -140,7 +140,7 @@ def lint_shotlist(
         if name not in char_cache:
             try:
                 char_cache[name] = load_character(paths, name)
-            except SystemExit:
+            except UserError:
                 char_cache[name] = None
         return char_cache[name]
 
@@ -170,9 +170,11 @@ def lint_shotlist(
             issues.append(Issue("warn", w, "setting is empty"))
         if shot.framing not in templates.get("framings", {}):
             issues.append(Issue("warn", w, f"framing {shot.framing!r} not in prompt_templates framings"))
-        if shot.on_camera_speech:
-            issues.append(Issue("warn", w, "on_camera_speech=true — lip-sync is outside current scope"))
-        for field in ("action", "setting", "notes"):
+        if shot.on_camera_speech and not shot.line_ids:
+            issues.append(Issue("warn", w, "on_camera_speech=true but the shot has no lines to lip-sync"))
+        if shot.approved_keyframe and not shot.motion_prompt.strip():
+            issues.append(Issue("warn", w, "no motion_prompt — clips will use the action text with subtle movement"))
+        for field in ("action", "setting", "notes", "motion_prompt"):
             issues += lint_text(w, getattr(shot, field), banned)
 
         chars = []

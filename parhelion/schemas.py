@@ -96,6 +96,7 @@ class Shot(BaseModel):
     on_camera_speech: bool = False
     notes: str = ""
     motion_prompt: str = ""
+    camera: str = ""  # simple camera move for image-to-video, e.g. "slow push in"
     approved_keyframe: str | None = None
     approved_clip: str | None = None
 
@@ -134,6 +135,9 @@ class Project(BaseModel):
             "shotlist": "todo",
             "keyframes": "todo",
             "storyboard": "todo",
+            "voice": "todo",
+            "clips": "todo",
+            "video": "todo",
         }
     )
     approvals: list[Approval] = []
@@ -143,11 +147,19 @@ class Project(BaseModel):
 # ---------- characters ----------
 
 
+class Voice(BaseModel):
+    voice_id: str
+    speed: float = 1.0
+    pitch: int = 0
+    emotion: str | None = None
+
+
 class Character(BaseModel):
     name: str
     display_name: str = ""
     prompt_block: str
     approved_sheets: list[str] = []
+    voice: Voice | None = None
 
 
 # ---------- cost ledger ----------

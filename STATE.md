@@ -6,19 +6,26 @@ _Last updated: 2026-09-24_
 
 ## Current phase
 
-**Phase 0: setup plus image-provider smoke test (storyboard scope).** The scaffold is built. The smoke test has not been run.
+**Phase 0 → 1: pipeline built through to video; no paid generation run yet.** Voice, clips, lip-sync and rough-cut assembly
+are built and tested with fake providers (2026-09-24). Next: add fal credit, pick voices, smoke test, then Demo B.
 
 ## Decisions made
 
 - **Name: Parhelion** (renamed from Mirage on 2026-09-24 because Mirage is used by existing companies).
-- Local pipeline. No web server, database or hosting. Reports (storyboard, cost dashboard) are static HTML files.
-- **Scope is storyboard only** for now: brief → script → timing → characters → shot list → keyframes → storyboard. Voice, video, lip-sync and assembly are future stages.
+- Local pipeline. **Local UI (2026-09-24):** `parhelion ui` = React + Vite + TS frontend (`web/`) on a FastAPI JSON API (`parhelion/api/`), bound to 127.0.0.1, single user, no login. Chosen over server-rendered HTMX for better UX and as a base for a future product. Components are **shadcn/ui** (Tailwind v4, radix base, nova preset, brand blue as `--primary`, light/dark/system toggle). `npm run dev` at the repo root runs API + UI together (npm workspace + concurrently). No hosting or database. The storyboard is still a static HTML file (print to PDF).
+- **Scope changed 2026-09-24: the demos are finished videos**, not storyboards only (partner's request). Pipeline output is a rough cut + CapCut folder; polish is manual in CapCut. The storyboard stays as the checkpoint before clip spend.
+- **Business model (as understood 2026-09-24):** the insurer (partner's employer) persuades and subsidises a broker to buy the videos; the broker sends them regularly to its agents (the viewers). No company names ever appear in videos.
+- **Tracking is out of scope for now** — to be discussed with the partner. Zero-cost idea on file: end card with QR/short code → free form with a 3-question quiz + usefulness rating, one video version per broker, CSV import into a local Performance page. Plain MP4s forwarded in chat apps cannot report views.
 - **The script is a human + AI discussion.** Claude proposes, drafts and checks; humans decide content, tone and creative choices. Humour is optional and set per video. AI does not judge subjective quality.
-- **Timing is estimated** from character count until TTS exists (Mandarin 4.5 chars/s, Cantonese 5.0, set in `config/pipeline.yaml`).
+- **Timing:** estimated from character count (Mandarin 4.5 chars/s, Cantonese 5.0) until the voice track exists; then `timing.json` comes from the approved takes (`source: tts`) and `parhelion retime` moves shots onto it.
+- **TTS = MiniMax Speech 2.8 on fal** (not Azure): same key and billing, Mandarin + Cantonese, ~$0.03 per 60 s video. Voices are chosen by humans per character (`character.yaml`) and for the narrator (`library/voices.yaml`).
+- **Video = Kling 2.5 Turbo standard on fal** by default ($0.042/s; pro $0.07/s and Hailuo-02 $0.045/s as alternatives), one take per shot. **Lip-sync = LatentSync** ($0.005/s) by default, only for `on_camera_speech` shots.
+- **Assembly is local FFmpeg** (bundled via `imageio-ffmpeg`, so no apt install needed); subtitles are Pillow-rendered PNG overlays using a CJK font (WSL uses Windows' Microsoft YaHei if `fonts-noto-cjk` isn't installed).
 - **Models are undecided.** `config/models.yaml` lists candidates (first = default). They will be chosen by a smoke-test comparison.
 - **fal.ai is the first provider**: one key, pay per successful output, billing events API for actual spend, pricing API for price checks.
+- **Provider choice for storyboard stage (2026-09-24): stay on fal, default Seedream v4 ($0.03/img), 2 variants per shot** (≈ 35 images ≈ $1.05 per 60s storyboard). Cheaper options save < $0.50 per storyboard: Gemini Batch ~$0.02/img (slow, async); BytePlus Seedream 200 free trial images; Alibaba Model Studio 100 free images (Singapore region). None has a spend API like fal's. Revisit at daily volume.
 - The pipeline never calls an LLM API. Claude Code does the LLM work in files.
-- Stack: Python 3.11+, uv, Typer, Pydantic, httpx, PyYAML, Jinja2, Pillow.
+- Stack: Python 3.11+, uv, Typer, Pydantic, httpx, PyYAML, Jinja2, Pillow, FastAPI, imageio-ffmpeg; React + Vite + shadcn/ui.
 - The cost ledger is global, `data/costs.jsonl`, and the dashboard is `output/dashboard.html`.
 
 ## Roadmap
@@ -27,19 +34,28 @@ _Last updated: 2026-09-24_
   - [x] Docs rewritten for storyboard scope and the Parhelion name
   - [x] Scaffold: pyproject, config, schemas, cost guard + ledger, fal provider, lint, timing, keyframes, storyboard, dashboard, tests
   - [x] Tests pass (18, run 2026-09-24 in a temporary venv); CLI checked end to end on a sample project
-  - [ ] Install `uv`, then `uv sync && uv run pytest` on your machine
+  - [x] Local UI built: React frontend + FastAPI API, spend modal + background jobs, script drafts/feedback, claims approval, keyframe compare/approve, costs page (28 tests pass; screenshots checked on sample data)
+  - [x] `uv sync && uv run pytest` on your machine (28 pass, 2026-09-24)
+  - [x] UI built (`web/dist`); start with `uv run parhelion ui`
+  - [x] UI moved to shadcn/ui + Tailwind; `npm run dev` at repo root starts API + UI (checked: proxy, Ctrl+C stops both, spend dialog opens without spending)
   - [x] Folder moved to `~/Projects/Parhelion`
   - [ ] GitHub private repo created (see `docs/setup.md`)
   - [ ] fal account with $5–10 credit; `FAL_KEY` (and optional `FAL_ADMIN_KEY`) in `.env`
-  - [ ] `parhelion prices check`: confirm the prices in `config/prices.yaml`
-  - [ ] Smoke test (≈ $0.25, confirm first): 1 test character, 3 candidate models × 2 images, then 1 keyframe using the sheet as reference
+  - [x] fal keys added (FAL_KEY + FAL_ADMIN_KEY); `parhelion prices check` 2026-09-24: all 6 endpoint prices match (incl. FLUX Kontext endpoint ids)
+  - [ ] **Add fal credit** — balance was $0.00 on 2026-09-24; generation will fail until topped up ($5–10 suggested)
+  - [x] Video stages built (2026-09-24): voice (TTS) + voice track + retime, clips (image-to-video), lip-sync, rough-cut assembly + CapCut folder; CLI + UI tabs Voice / Clips / Video; 36 tests pass (fake providers + real ffmpeg on generated media)
+  - [ ] Raise `PARHELION_MAX_SPEND_PER_RUN` to ~$10 (a full clip run for 12 shots is ~$2.50) and set `PARHELION_MONTHLY_BUDGET` (suggest $50)
+  - [ ] Pick voices for 小王 / 张叔 on the Characters page (preview ≈ $0.003 each)
+  - [ ] Smoke test (≈ $0.50, confirm first): 1 character on 2–3 image models, 1 keyframe, 2 voice lines, 1 clip — check quality and that billing matches the ledger
   - [ ] `parhelion cost sync` and check that the dashboard matches the fal console
-- [ ] **Phase 1: Demo B storyboard**: brief → script discussion → fact-check → characters → shot list → keyframes → storyboard
-- [ ] **Phase 2: storyboards for Demos A and C**
-- [ ] **Phase 3: client discussion and quote** (to be drafted together; you'll explain the business situation first)
-- [ ] **Phase 4+ (future):** voice (TTS), image-to-video, lip-sync, assembly, CapCut hand-off
+- [ ] **Phase 1: Demo B video**: brief (partner inspiration) → script → fact-check → voice → shots → keyframes → storyboard (partner OK) → clips → rough cut → CapCut
+- [ ] **Phase 2: Demos A and C** (A may use an AI-twin tool instead — decide with partner)
+- [ ] **Phase 3: client pitch and quote** (drafted together; per-video price with a minimum volume)
+- [ ] **Later:** performance tracking (see Decisions); hosted player only if a client funds it
 
-## Candidate tools (unverified until smoke test)
+## Candidate tools (prices re-checked live 2026-09-24; quality unverified until smoke test)
+
+**Estimated cost per 60 s video (standard tier):** images ~$1 · clips ~$4 (12 shots × 5 s × 1.5 takes × $0.042) · voice ~$0.03 · lip-sync <$1 → **~$6–8**; all 3 demos with retakes **~$20–30**.
 
 | Need | Candidate | Price read 2026-09-23 | Notes |
 |---|---|---|---|
@@ -48,10 +64,14 @@ _Last updated: 2026-09-24_
 | | fal FLUX Kontext Pro | $0.04/image | Endpoint id not yet verified |
 | | Gemini API direct `gemini-3.1-flash-lite-image` | ~$0.034/image (1K) | Only if fal models aren't good enough |
 | | Local ComfyUI on RTX 4060 (8 GB) | $0 | Possible draft provider later |
-| TTS (future) | Azure Speech neural (zh-CN, zh-HK) | Free F0: 0.5M chars/month | Covers hundreds of videos free |
-| | MiniMax Speech HD / Turbo | ~$100 / $60 per 1M chars | Cantonese supported |
-| Image-to-video (future) | Kling 2.5 Turbo Pro on fal | $0.07/s | |
-| | Veo 3 on fal | $0.40/s | Premium tier |
+| TTS | **fal `fal-ai/minimax/speech-2.8-hd`** (default) / `-turbo` | $0.10 / $0.06 per 1,000 chars | Mandarin + Cantonese (`language_boost`), 6 Cantonese + ~30 Mandarin system voices |
+| Image-to-video | **fal Kling 2.5 Turbo standard** (default) | $0.042/s | 5 or 10 s; prompt + image_url + negative_prompt |
+| | fal Kling 2.5 Turbo pro | $0.07/s | |
+| | fal Hailuo-02 standard | $0.045/s | 6 or 10 s; no negative prompt |
+| | fal Wan 2.2 / Veo3 fast | $0.08/s / $0.15/s | not configured |
+| Lip-sync | **fal LatentSync** (default) | $0.005/s | video_url + audio_url |
+| | fal Kling lipsync | $0.014/unit (unit undocumented) | video 2–10 s, 720–1920 px |
+| | fal Sync v2 | $3/min | premium |
 
 A 60s storyboard is estimated at about 50 images ≈ $1.5–2.0.
 
@@ -61,7 +81,7 @@ _(model id, provider, key params, price, date verified, source URL)_
 
 - 2026-09-24, fal queue API: `POST https://queue.fal.run/{endpoint_id}` with header `Authorization: Key $FAL_KEY`. The response includes `request_id`, `status_url` and `response_url`. Statuses are `IN_QUEUE`, `IN_PROGRESS` and `COMPLETED`. Source: fal.ai/docs/model-apis/model-endpoints/queue
 - 2026-09-24, fal billing: `GET https://api.fal.ai/v1/account/billing?expand=credits` returns `credits.current_balance`. `GET https://api.fal.ai/v1/models/billing-events` (params `start`, `end`, `request_id`, `cursor`, `limit`) returns `billing_events[].cost_total`. Both **need an ADMIN API key**. Source: fal.ai/docs/platform-apis/v1/…
-- 2026-09-24, fal pricing: `GET https://api.fal.ai/v1/models/pricing?endpoint_id=…` returns `prices[].unit_price` and `unit`.
+- 2026-09-24, fal pricing: `GET https://api.fal.ai/v1/models/pricing?endpoint_id=…` returns `prices[].unit_price` and `unit`. Live check with our key: seedream v4 text-to-image/edit $0.03, nano-banana (+/edit) $0.0398, flux-pro/kontext text-to-image + multi $0.04 per image — all match config/prices.yaml.
 - 2026-09-24, `fal-ai/bytedance/seedream/v4/edit`:
   - inputs: `prompt`, `image_urls` (≤10), `image_size` (enum or `{width,height}`), `num_images`, `seed`, `enable_safety_checker`
   - output: `images[].url`, `seed`
@@ -81,11 +101,15 @@ _(per test / per video, actual)_
 
 - Which image model keeps our characters most consistent (Seedream vs Nano Banana vs Kontext vs newer versions)?
 - Is a local ComfyUI draft mode on the RTX 4060 worth setting up?
+- Worth integrating a free-trial provider (BytePlus 200 images / Alibaba 100 images) for the demos? Only if Seedream wins the smoke test.
 - Budget numbers: `PARHELION_MAX_SPEND_PER_RUN` (suggested $2) and `PARHELION_MONTHLY_BUDGET` (suggested $30).
 - Display currency: USD only, or USD + HKD?
 - Client quote: pending your explanation of the business situation.
 - Demo A (partner's AI twin): tool, consent and likeness terms. Out of storyboard scope for now.
-- Key points for Demos B and C from partner.
+- Key points for Demos B and C from partner. **Demo B draft brief** is in `docs/briefs/demo-b-oesophageal.md` (key-point options A–D; suggestion A = guaranteed renewal vs one-year plans). Waiting on partner: pick key point, confirm facts F1–F5, pick "what to say".
+- `PARHELION_MONTHLY_BUDGET` is not set in `.env` (defaults to $30).
+- Tracking/measurement: which channel will the broker use (WhatsApp / WeChat / LMS)? Does the insurer accept a form + QR end card, or want a hosted player? Who pays for hosting?
+- Voices: which MiniMax voices suit 小王 / 张叔 / narrator (human choice)?
 - Background music/SFX licensing (future).
 
 ## Demo videos
@@ -112,8 +136,9 @@ All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainl
 
 ## Next steps
 
-1. Install `uv`, then `uv sync && uv run pytest` (see `docs/setup.md`).
+1. Start the UI: `npm install` once, then `npm run dev` → http://127.0.0.1:5173 (or `npm start` for the single-server build on :8765). See `docs/setup.md`.
 2. Reopen Claude Code in `~/Projects/Parhelion`. Create the GitHub repo (see `docs/setup.md`).
 3. Create a fal account, add credit, put the keys in `.env`, and run `parhelion prices check`.
 4. Run the smoke test (confirm cost first).
-5. Write `brief.md` for Demo B together, then start the script working session.
+5. Type up the partner's Demo B inspiration as a brief (format: `docs/briefs/demo-b-oesophageal.md`), create project `demo-b`, and start the script working session.
+6. After the storyboard is agreed: voice → retime → clips → Video tab → CapCut.

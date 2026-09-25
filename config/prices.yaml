@@ -1,32 +1,80 @@
 # Unit prices in USD, keyed by fal endpoint id.
+# `unit` is fal's billing unit. Stages convert their quantity into it: characters/1000, seconds, seconds/60.
 # Re-check with `parhelion prices check` (uses fal pricing API) and update `verified`.
 fal-ai/bytedance/seedream/v4/text-to-image:
   unit: image
   unit_price: 0.03
-  source: https://fal.ai/pricing
-  verified: 2026-09-23
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
 fal-ai/bytedance/seedream/v4/edit:
   unit: image
   unit_price: 0.03
-  source: https://fal.ai/pricing
-  verified: 2026-09-23
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
 fal-ai/nano-banana:
   unit: image
   unit_price: 0.0398
-  source: https://fal.ai/pricing
-  verified: 2026-09-23
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
 fal-ai/nano-banana/edit:
   unit: image
   unit_price: 0.0398
-  source: https://fal.ai/pricing
-  verified: 2026-09-23
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
 fal-ai/flux-pro/kontext/text-to-image:
   unit: image
   unit_price: 0.04
-  source: https://fal.ai/pricing
-  verified: null
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
 fal-ai/flux-pro/kontext/multi:
   unit: image
   unit_price: 0.04
-  source: https://fal.ai/pricing
-  verified: null
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+
+# ---------- voice ----------
+fal-ai/minimax/speech-2.8-hd:
+  unit: 1000 characters
+  unit_price: 0.1
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+fal-ai/minimax/speech-2.8-turbo:
+  unit: 1000 characters
+  unit_price: 0.06
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+
+# ---------- image-to-video ----------
+fal-ai/kling-video/v2.5-turbo/standard/image-to-video:
+  unit: seconds
+  unit_price: 0.042
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+fal-ai/kling-video/v2.5-turbo/pro/image-to-video:
+  unit: seconds
+  unit_price: 0.07
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+fal-ai/minimax/hailuo-02/standard/image-to-video:
+  unit: seconds
+  unit_price: 0.045
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+
+# ---------- lip-sync ----------
+fal-ai/latentsync:
+  unit: seconds
+  unit_price: 0.005
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+fal-ai/kling-video/lipsync/audio-to-video:
+  unit: units            # fal does not document what one unit is; we assume 1 unit per 5 s (estimate only)
+  unit_price: 0.014
+  seconds_per_unit: 5
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24
+fal-ai/sync-lipsync/v2:
+  unit: minutes
+  unit_price: 3.0
+  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
+  verified: 2026-09-24

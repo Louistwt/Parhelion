@@ -15,7 +15,8 @@ sudo apt update && sudo apt install gh
 
 (If `apt install gh` gives an old version, use the official apt repo: https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
 
-FFmpeg is not needed until the future video/assembly stages.
+FFmpeg comes bundled (the `imageio-ffmpeg` package), so nothing to install. Optional: `sudo apt install ffmpeg fonts-noto-cjk`
+(system ffmpeg is used if present; the Noto CJK font is used for subtitles, otherwise Windows' Microsoft YaHei).
 
 ## 2. Python environment
 
@@ -26,7 +27,27 @@ uv run pytest                 # should pass
 uv run parhelion --help       # or: uv run ph --help
 ```
 
-## 3. API keys (`.env`)
+## 3. Start the UI
+
+```bash
+cd ~/Projects/Parhelion
+npm install        # first time only (installs the web/ workspace too)
+npm run dev        # starts the Python API (:8765) + the UI with hot reload (:5173)
+```
+
+Open **http://127.0.0.1:5173**. Ctrl+C stops both processes. Both listen on 127.0.0.1 only.
+
+Single-server alternative (no Node needed at runtime once built):
+
+```bash
+npm start                  # = npm run build && uv run parhelion ui  → http://127.0.0.1:8765
+uv run parhelion ui        # serves the last build in web/dist
+```
+
+UI components are [shadcn/ui](https://ui.shadcn.com) on Tailwind v4. Add more with
+`cd web && npx shadcn@latest add <component>` (files land in `web/src/components/ui/`).
+
+## 4. API keys (`.env`)
 
 Copy `.env.example` to `.env` if you haven't already, then fill in:
 
@@ -44,7 +65,7 @@ Add ~$5–10 credit on fal (billing page). Then check prices:
 uv run parhelion prices check
 ```
 
-## 4. GitHub repository (private)
+## 5. GitHub repository (private)
 
 The folder is already a git repository (no commits yet). `.gitignore` excludes `.env`,
 `projects/`, `data/`, `output/` — media, costs and secrets never leave your machine.
@@ -62,7 +83,12 @@ gh repo create Parhelion --private --source=. --remote=origin --push
 - For an organisation account later: `gh repo create <org>/Parhelion --private --source=. --push`.
 - Afterwards: `git push` after each commit. Claude Code only commits/pushes when you ask.
 
-## 5. Daily loop (storyboard scope)
+## 6. Daily loop (storyboard scope)
+
+Everything below can also be done in the UI. CLI equivalents:
+
+Writing your first brief? Read [brief-guide.md](brief-guide.md) and see the worked example
+[briefs/demo-b-oesophageal.md](briefs/demo-b-oesophageal.md).
 
 ```bash
 uv run ph new demo-b --lang mandarin --seconds 60      # then fill in brief.md with your partner
@@ -75,7 +101,14 @@ uv run ph character xiaowang --approve v2
 uv run ph lint demo-b
 uv run ph keyframes demo-b --dry-run                    # then without --dry-run
 uv run ph approve demo-b keyframe S01 v2
-uv run ph storyboard demo-b                             # open HTML → print → Save as PDF
+uv run ph storyboard demo-b                             # open HTML → print → Save as PDF (partner/client OK)
+uv run ph voice demo-b --dry-run                        # voice per line (cheap), then approve takes
+uv run ph voice-track demo-b                            # real timing + voice track
+uv run ph retime demo-b                                 # shots onto real timing
+uv run ph clips demo-b --dry-run                        # the expensive stage, then approve per shot
+uv run ph approve demo-b clip S01 v1
+uv run ph lipsync demo-b --dry-run                      # only shots marked on_camera_speech
+uv run ph assemble demo-b                               # rough cut + CapCut folder (free)
 uv run ph cost sync && uv run ph dashboard --online     # open output/dashboard.html
 ```
 

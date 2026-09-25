@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from .config import UserError
+
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
 
 
@@ -61,5 +63,5 @@ def parse_version(text: str) -> int:
     """Accept 'v2', 'V2' or '2'."""
     t = text.strip().lower().lstrip("v")
     if not t.isdigit():
-        raise SystemExit(f"Version must look like v2 or 2, got {text!r}")
+        raise UserError(f"Version must look like v2 or 2, got {text!r}")
     return int(t)

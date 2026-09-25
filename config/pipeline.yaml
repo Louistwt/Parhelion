@@ -14,11 +14,30 @@ shots:
   max_seconds: 8.0
 
 keyframes:
-  variants_per_shot: 3
+  variants_per_shot: 2         # cost lever: 2 variants, regenerate only rejected shots
   reroll_factor: 1.2            # used for "cost to finish" forecasts only
 
 characters:
   variants: 2
+
+clips:
+  variants_per_shot: 1          # video is expensive: one take, regenerate only rejected shots
+
+assembly:
+  width: 1080
+  height: 1920
+  fps: 30
+  still_zoom: 1.08              # slow zoom for shots that have no clip yet (animatic)
+  subtitle_font_size: 60
+  subtitle_max_chars_per_line: 14
+  subtitle_bottom_margin: 260   # px from the bottom (above platform UI)
+  # First existing file wins. Install fonts-noto-cjk in WSL, or Windows' Microsoft YaHei is used.
+  subtitle_fonts:
+    - /usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc
+    - /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+    - /usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc
+    - /mnt/c/Windows/Fonts/msyhbd.ttc
+    - /mnt/c/Windows/Fonts/msyh.ttc
 
 report:
   usd_to_hkd: 7.8

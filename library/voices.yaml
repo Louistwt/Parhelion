@@ -1,0 +1,41 @@
+# Voices are a HUMAN choice. The narrator voice lives here; each character's voice lives in its character.yaml:
+#   voice: {voice_id: "Chinese (Mandarin)_Humorous_Elder", speed: 1.0, pitch: 0, emotion: happy}
+# `catalog` lists MiniMax system voices (from platform.minimax.io docs, 2026-09-24) for the UI picker.
+
+narrator:
+  mandarin: {voice_id: "Chinese (Mandarin)_Male_Announcer", speed: 1.0, pitch: 0}
+  cantonese: {voice_id: "Cantonese_ProfessionalHost (M)", speed: 1.0, pitch: 0}
+
+catalog:
+  mandarin:
+    - {id: "Chinese (Mandarin)_Reliable_Executive", label: "Reliable executive (male)"}
+    - {id: "Chinese (Mandarin)_News_Anchor", label: "News anchor"}
+    - {id: "Chinese (Mandarin)_Male_Announcer", label: "Male announcer"}
+    - {id: "Chinese (Mandarin)_Radio_Host", label: "Radio host"}
+    - {id: "Chinese (Mandarin)_Unrestrained_Young_Man", label: "Energetic young man"}
+    - {id: "Chinese (Mandarin)_Gentle_Youth", label: "Gentle youth"}
+    - {id: "Chinese (Mandarin)_Southern_Young_Man", label: "Southern young man"}
+    - {id: "Chinese (Mandarin)_Straightforward_Boy", label: "Straightforward boy"}
+    - {id: "Chinese (Mandarin)_Sincere_Adult", label: "Sincere adult"}
+    - {id: "Chinese (Mandarin)_Gentleman", label: "Gentleman"}
+    - {id: "Chinese (Mandarin)_Humorous_Elder", label: "Humorous elder"}
+    - {id: "Chinese (Mandarin)_Kind-hearted_Elder", label: "Kind-hearted elder"}
+    - {id: "Chinese (Mandarin)_Gentle_Senior", label: "Gentle senior"}
+    - {id: "Chinese (Mandarin)_Mature_Woman", label: "Mature woman"}
+    - {id: "Chinese (Mandarin)_Wise_Women", label: "Wise woman"}
+    - {id: "Chinese (Mandarin)_Kind-hearted_Antie", label: "Kind-hearted auntie"}
+    - {id: "Chinese (Mandarin)_Warm-HeartedAunt", label: "Warm-hearted aunt"}
+    - {id: "Chinese (Mandarin)_Sweet_Lady", label: "Sweet lady"}
+    - {id: "Chinese (Mandarin)_Warm_Bestie", label: "Warm bestie"}
+    - {id: "Chinese (Mandarin)_Crisp_Girl", label: "Crisp girl"}
+    - {id: "Chinese (Mandarin)_IntellectualGirl", label: "Intellectual girl"}
+    - {id: "Chinese (Mandarin)_HK_Flight_Attendant", label: "HK flight attendant"}
+  cantonese:
+    - {id: "Cantonese_ProfessionalHost (M)", label: "Professional host (male)"}
+    - {id: "Cantonese_ProfessionalHost (F)", label: "Professional host (female)"}
+    - {id: "Cantonese_PlayfulMan", label: "Playful man"}
+    - {id: "Cantonese_GentleLady", label: "Gentle lady"}
+    - {id: "Cantonese_KindWoman", label: "Kind woman"}
+    - {id: "Cantonese_CuteGirl", label: "Cute girl"}
+
+emotions: [neutral, happy, sad, angry, fearful, disgusted, surprised]

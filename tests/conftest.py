@@ -15,7 +15,8 @@ def root(tmp_path, monkeypatch):
     char = tmp_path / "library" / "characters" / "xiaowang"
     char.mkdir(parents=True)
     (char / "character.yaml").write_text(
-        "name: xiaowang\ndisplay_name: 小王\nprompt_block: young agent, navy suit\napproved_sheets: []\n", encoding="utf-8"
+        "name: xiaowang\ndisplay_name: 小王\nprompt_block: young agent, navy suit\napproved_sheets: []\n"
+        "voice: {voice_id: 'Chinese (Mandarin)_Gentle_Youth', speed: 1.0, pitch: 0}\n", encoding="utf-8"
     )
     folder = tmp_path / "projects" / "2026-09-24-demo"
     (folder / "keyframes").mkdir(parents=True)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from ..config import Paths
+from ..config import Paths, UserError
 from ..schemas import Character, Shot
 
 
@@ -17,7 +17,7 @@ def character_dir(paths: Paths, name: str) -> Path:
 def load_character(paths: Paths, name: str) -> Character:
     f = character_dir(paths, name) / "character.yaml"
     if not f.exists():
-        raise SystemExit(
+        raise UserError(
             f"Character {name!r} not found. Copy library/characters/_template to library/characters/{name}/"
         )
     data = yaml.safe_load(f.read_text(encoding="utf-8")) or {}

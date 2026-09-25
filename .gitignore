@@ -18,5 +18,10 @@ build/
 # os / editors
 .DS_Store
 Thumbs.db
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
+
+# web UI
+node_modules/
+web/dist/

@@ -26,8 +26,73 @@ image:
     provider: fal
     text_endpoint: fal-ai/flux-pro/kontext/text-to-image
     edit_endpoint: fal-ai/flux-pro/kontext/multi
-    verified: null              # NOT verified — check endpoint ids + params before use
+    verified: null              # endpoint ids + price confirmed via fal pricing API 2026-09-24; params NOT verified
     params:
       aspect_ratio: "9:16"
 
-# Future stages (not built): tts, video, lipsync
+# ---------- voice (TTS) ----------
+# language_boost: mandarin -> "Chinese", cantonese -> "Chinese,Yue". Voices are set per character (character.yaml)
+# and for the narrator in library/voices.yaml.
+tts:
+  - key: minimax-speech-2.8-hd
+    provider: fal
+    endpoint: fal-ai/minimax/speech-2.8-hd
+    verified: 2026-09-24          # schema from fal model page: prompt, voice_setting, audio_setting, language_boost
+    params:
+      output_format: url
+      audio_setting: {format: mp3, sample_rate: 32000, bitrate: 128000, channel: 1}
+
+  - key: minimax-speech-2.8-turbo
+    provider: fal
+    endpoint: fal-ai/minimax/speech-2.8-turbo
+    verified: 2026-09-24
+    params:
+      output_format: url
+      audio_setting: {format: mp3, sample_rate: 32000, bitrate: 128000, channel: 1}
+
+# ---------- image-to-video ----------
+# durations: lengths the model can generate (seconds). A shot uses the shortest one >= its length, then assembly trims.
+video:
+  - key: kling-2.5-turbo-standard
+    provider: fal
+    endpoint: fal-ai/kling-video/v2.5-turbo/standard/image-to-video
+    verified: 2026-09-24          # inputs: prompt, image_url, duration "5"|"10", negative_prompt, cfg_scale
+    durations: [5, 10]
+    supports_negative_prompt: true
+    params: {cfg_scale: 0.5}
+
+  - key: kling-2.5-turbo-pro
+    provider: fal
+    endpoint: fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+    verified: null                # price confirmed via pricing API; params assumed same as standard
+    durations: [5, 10]
+    supports_negative_prompt: true
+    params: {cfg_scale: 0.5}
+
+  - key: hailuo-02-standard
+    provider: fal
+    endpoint: fal-ai/minimax/hailuo-02/standard/image-to-video
+    verified: 2026-09-24          # inputs: prompt, image_url, duration "6"|"10", resolution, prompt_optimizer
+    durations: [6, 10]
+    supports_negative_prompt: false
+    params: {resolution: 768P, prompt_optimizer: false}
+
+# ---------- lip-sync (only shots with on_camera_speech: true) ----------
+lipsync:
+  - key: latentsync
+    provider: fal
+    endpoint: fal-ai/latentsync
+    verified: 2026-09-24          # inputs: video_url, audio_url, guidance_scale, seed, loop_mode
+    params: {loop_mode: loop}
+
+  - key: kling-lipsync
+    provider: fal
+    endpoint: fal-ai/kling-video/lipsync/audio-to-video
+    verified: null                # inputs video_url, audio_url; video 2–10 s, 720–1920 px; billing unit unclear
+    params: {}
+
+  - key: sync-lipsync-v2
+    provider: fal
+    endpoint: fal-ai/sync-lipsync/v2
+    verified: null
+    params: {}
