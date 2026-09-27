@@ -128,6 +128,7 @@ All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainl
 - Style (draft): skit, realistic style; characters 小明 (`siuming`, client, owns a couple of cars) and 小朱 (`smallpig`, agent)
 - Concept (draft): 小朱 kindly asks which car 小明 would sell if his child needed money for treatment tomorrow; 小明 imagines it and realises cover must be set up while the family is healthy. No sick child on screen.
 - Key point (to verify): mainland basic insurance only partly reimburses a child's treatment; HK medical cover can pay for treatment in HK. Brief: `docs/briefs/demo-a-cars.md`.
+- **Script v1 drafted 2026-09-27** (`projects/2026-09-24-demo-a/script_v1.md`): 7 lines, ~114 spoken chars ≈ 27–28 s. Humans to pick hook (L01), what to say (L06), closing line (L07) and the key-point on-screen text; partner to check claims C01–C03 (C04 only if L06 option ① is chosen). Speakers use folder ids `siuming` / `smallpig`.
 
 **Demo B: Oesophageal cancer** ← build first
 - Language: Mandarin
