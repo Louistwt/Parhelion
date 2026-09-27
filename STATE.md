@@ -123,12 +123,12 @@ _(per test / per video, actual)_
 
 All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainland point each unless the brief says otherwise. All medical/insurance facts must be verified by partner. **Concepts below are drafts to discuss, not fixed.**
 
-**Demo A: "Which car would you sell?"** (changed 2026-09-27)
-- Language: Mandarin, 30 s
-- Style (draft): skit, realistic style; characters 小明 (`siuming`, client, owns a couple of cars) and 小朱 (`smallpig`, agent)
-- Concept (draft): 小朱 kindly asks which car 小明 would sell if his child needed money for treatment tomorrow; 小明 imagines it and realises cover must be set up while the family is healthy. No sick child on screen.
-- Key point (to verify): mainland basic insurance only partly reimburses a child's treatment; HK medical cover can pay for treatment in HK. Brief: `docs/briefs/demo-a-cars.md`.
-- **Script v1 drafted 2026-09-27** (`projects/2026-09-24-demo-a/script_v1.md`): 7 lines, ~114 spoken chars ≈ 27–28 s. Humans to pick hook (L01), what to say (L06), closing line (L07) and the key-point on-screen text; partner to check claims C01–C03 (C04 only if L06 option ① is chosen). Speakers use folder ids `siuming` / `smallpig`.
+**Demo A: 「第二次机会」** (story changed again 2026-09-27)
+- Language: Mandarin, 30 s, skit, realistic style
+- Characters: 小明 (`siuming`, father) and 小朱 (`smallpig`, his friend **and the car dealer**, not an agent)
+- Story: 小明 sells his two cars to 小朱 to pay his child's HK$100,000 medical bill; narrator gives the HK vs mainland point; 小朱 hands over the cheque for the cars: 「不是每次都有第二次机会，以后怎么做，你心里有数」; 小明: 「真正的宝贝，要这样护着」.
+- **script_v2 agreed by humans + script.json written 2026-09-27**: 7 lines, 119 chars, estimated 28.3 s, lint 0 errors. Claims C01–C04 unverified, waiting for the partner (C04 = the HK$100,000 amount).
+- `brief.md` still describes the v1 "what if" story. Humans to update it.
 
 **Demo B: Oesophageal cancer** ← build first
 - Language: Mandarin
