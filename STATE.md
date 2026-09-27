@@ -11,6 +11,7 @@ are built and tested with fake providers (2026-09-24). Next: add fal credit, pic
 
 ## Decisions made
 
+- **Work directly on `main` in `~/Projects/Parhelion` for now (2026-09-27)** — no Claude worktrees; side branches later, created deliberately. The old worktree `claude/review-claude-state-docs-72282e` is fully merged and can be deleted.
 - **Image style is chosen per character (2026-09-27)**: `character.yaml` `style:` picks a named block in `library/prompt_templates.yaml` `styles:` (`cartoon` = the old placeholder and the default, `realistic` = photoreal draft wording, a human choice to refine). Set on the Characters page. Shots take their characters' style; one style per video (lint). Character sheets are now generated landscape (`sheet_params`, Seedream 1920×1080 / others 16:9) so the three full-body views fit in one row; the first sheets were cartoon and stacked because the only style was cartoon and the canvas was 9:16.
 - **Demo A changed (2026-09-27)**: no longer thyroid cancer / AI twin. Now a 30 s Mandarin skit, "what if" story: 小明 (client, owns cars) and 小朱 (agent); key point = mainland basic insurance only partly reimburses a child's treatment vs HK medical cover arranged while healthy. Draft brief: `docs/briefs/demo-a-cars.md`.
 - **Name: Parhelion** (renamed from Mirage on 2026-09-24 because Mirage is used by existing companies).
@@ -125,10 +126,10 @@ All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainl
 
 **Demo A: 「第二次机会」** (story changed again 2026-09-27)
 - Language: Mandarin, 30 s, skit, realistic style
-- Characters: 小明 (`siuming`, father) and 小朱 (`smallpig`, his friend **and the car dealer**, not an agent)
+- Characters: 小明 (`siuming`, father, late 30s, voice *Sincere adult*) and 小朱 (`smallpig`, his friend **and the car dealer**, late 40s, not an agent, voice *Gentle senior*); narrator *Male announcer*. Both have approved realistic sheets (v5, v6).
 - Story: 小明 sells his two cars to 小朱 to pay his child's HK$100,000 medical bill; narrator gives the HK vs mainland point; 小朱 hands over the cheque for the cars: 「不是每次都有第二次机会，以后怎么做，你心里有数」; 小明: 「真正的宝贝，要这样护着」.
 - **script_v2 agreed by humans + script.json written 2026-09-27**: 7 lines, 119 chars, estimated 28.3 s, lint 0 errors. Claims C01–C04 unverified, waiting for the partner (C04 = the HK$100,000 amount).
-- `brief.md` still describes the v1 "what if" story. Humans to update it.
+- 2026-09-27: brief.md rewritten to match v2 (old one in `.history/`); project stages brief/script `agreed`; `timing.json` estimated 28.2 s; lint 0 errors; voice dry run $0.014. **Ready for Voice** (app → Demo A → Voice tab), then shot list → keyframes → storyboard → clips → rough cut. Whole demo ≈ $1.5–2. Purpose: a finished demo for the partner to see.
 
 **Demo B: Oesophageal cancer** ← build first
 - Language: Mandarin
@@ -144,6 +145,7 @@ All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainl
 
 ## Next steps
 
+0. (2026-09-27) Demo A: Voice tab → generate 7 lines (≈ $0.01) → approve one take per line → build voice track → ask Claude for the shot list.
 0. (2026-09-27) Merge branch `claude/review-claude-state-docs-72282e` into `main`, then on the Characters page set Style = realistic for 小明 and 小朱, rewrite their look text as plain sentences (age, ethnicity, build, outfit incl. shoes), and regenerate sheets (≈ $0.12 on Seedream; confirm first). Copy `docs/briefs/demo-a-cars.md` into the Demo A project's `brief.md`.
 1. Start the UI: `npm install` once, then `npm run dev` → http://127.0.0.1:5173 (or `npm start` for the single-server build on :8765). See `docs/setup.md`.
 2. Reopen Claude Code in `~/Projects/Parhelion`. Create the GitHub repo (see `docs/setup.md`).
