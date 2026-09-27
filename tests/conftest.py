@@ -11,7 +11,10 @@ REPO = Path(__file__).resolve().parent.parent
 def root(tmp_path, monkeypatch):
     """A throwaway repo root with the real config + library, and one sample project."""
     shutil.copytree(REPO / "config", tmp_path / "config")
-    shutil.copytree(REPO / "library", tmp_path / "library")
+    # real library, minus the operator's own characters (tests must not depend on them)
+    shutil.copytree(REPO / "library", tmp_path / "library", ignore=lambda d, names: [
+        n for n in names if Path(d) == REPO / "library" / "characters" and not n.startswith(("_", "."))
+    ])
     char = tmp_path / "library" / "characters" / "xiaowang"
     char.mkdir(parents=True)
     (char / "character.yaml").write_text(
