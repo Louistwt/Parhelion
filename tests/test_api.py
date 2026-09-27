@@ -144,3 +144,15 @@ def test_character_style(client):
     assert client.put("/api/characters/laoli", json={"style": "cartoon"}).status_code == 200
     laoli = next(c for c in client.get("/api/characters").json()["characters"] if c["name"] == "laoli")
     assert laoli["style"] == "cartoon"
+
+
+def test_discard_sheet(client, root):
+    d = root / "library" / "characters" / "xiaowang"
+    for v in (1, 2):
+        (d / f"sheet_v{v}.png").write_bytes(b"x")
+    client.post("/api/characters/xiaowang/sheets/v1/approve")
+    assert client.post("/api/characters/xiaowang/sheets/v1/discard").status_code == 400  # approved: unapprove first
+    assert client.post("/api/characters/xiaowang/sheets/v2/discard").status_code == 200
+    xw = next(c for c in client.get("/api/characters").json()["characters"] if c["name"] == "xiaowang")
+    assert xw["sheets"] == ["sheet_v1.png"]
+    assert (d / "discarded" / "sheet_v2.png").exists()

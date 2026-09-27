@@ -50,6 +50,7 @@ are built and tested with fake providers (2026-09-24). Next: add fal credit, pic
   - [ ] Pick voices for 小王 / 张叔 on the Characters page (preview ≈ $0.003 each)
   - [x] fal credit added; first paid runs 2026-09-27: 2 character sheet runs for `siuming` (小明) and `smallpig` (小朱), 2 images each on Seedream v4 (est. $0.12; 1 failed run at $0). Result: cartoon + messy layout → fixed by the per-character style + landscape sheets
   - [x] Per-character style (cartoon / realistic) + landscape sheets + markdown-safe look text; 45 tests pass (2026-09-27)
+  - [x] Discard unwanted character sheets (UI: Discard in the image viewer; CLI: `--discard vN`); moved to `discarded/`, never deleted; 47 tests pass (2026-09-27)
   - [ ] Smoke test (≈ $0.50, confirm first): 1 character on 2–3 image models, 1 keyframe, 2 voice lines, 1 clip — check quality and that billing matches the ledger
   - [ ] `parhelion cost sync` and check that the dashboard matches the fal console
 - [ ] **Phase 1: Demo B video**: brief (partner inspiration) → script → fact-check → voice → shots → keyframes → storyboard (partner OK) → clips → rough cut → CapCut

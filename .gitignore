@@ -7,6 +7,7 @@ library/characters/*/sheet_v*.png
 library/characters/*/sheet_v*.jpg
 library/characters/*/sheet_v*.webp
 library/characters/*/voice_preview_*
+library/characters/*/discarded/
 data/
 output/
 

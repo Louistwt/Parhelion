@@ -1,20 +1,27 @@
-import { CheckIcon, Columns3Icon, SquareIcon, XIcon } from "lucide-react";
+import { CheckIcon, Columns3Icon, SquareIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Kbd } from "./common";
 
-/** Full-screen compare view. ←/→ move focus, Enter approves, Esc closes. */
-export function Lightbox({ title, images, approved, start = 0, onApprove, onClose }: {
+/** Full-screen compare view. ←/→ move focus, Enter approves, Esc closes. Optional Discard hides an unwanted image. */
+export function Lightbox({ title, images, approved, start = 0, onApprove, onDiscard, onClose }: {
   title: string;
   images: { src: string; name: string }[];
   approved: string[];
   start?: number;
   onApprove: (name: string) => void;
+  onDiscard?: (name: string) => void;
   onClose: () => void;
 }) {
   const [focus, setFocus] = useState(start);
   const [compare, setCompare] = useState(images.length <= 3);
+
+  // the list shrinks after a discard
+  useEffect(() => {
+    if (images.length === 0) onClose();
+    else if (focus > images.length - 1) setFocus(images.length - 1);
+  }, [images.length, focus, onClose]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -42,6 +49,13 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onClos
           <Button variant="outline" size="sm" onClick={() => setCompare((c) => !c)}>
             {compare ? <SquareIcon /> : <Columns3Icon />} {compare ? "Single view" : "Compare all"}
           </Button>
+          {current && onDiscard && (
+            <Button variant="outline" size="sm" disabled={approved.includes(current.name)}
+              title={approved.includes(current.name) ? "Unapprove it first" : "Hide this image (moved to discarded/, not deleted)"}
+              onClick={() => { if (window.confirm(`Discard ${current.name}? It moves to the discarded/ folder and disappears from here.`)) onDiscard(current.name); }}>
+              <Trash2Icon /> Discard
+            </Button>
+          )}
           {current && (
             <Button size="sm" onClick={() => onApprove(current.name)}>
               <CheckIcon /> {approved.includes(current.name) ? "Approved" : `Approve ${current.name.replace(/\.\w+$/, "")}`}

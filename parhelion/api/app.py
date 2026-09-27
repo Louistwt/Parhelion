@@ -364,8 +364,8 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         return {"ok": True}
 
     @app.post("/api/characters/{name}/sheets/{v}/{action}")
-    def sheet_action(name: str, v: str, action: Literal["approve", "unapprove"]):
-        fn = C.approve if action == "approve" else C.unapprove
+    def sheet_action(name: str, v: str, action: Literal["approve", "unapprove", "discard"]):
+        fn = {"approve": C.approve, "unapprove": C.unapprove, "discard": C.discard}[action]
         return {"file": fn(paths, name, parse_version(v))}
 
     # ---------- shots & keyframes ----------

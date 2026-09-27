@@ -155,16 +155,21 @@ def character(
     use_approved: bool = typer.Option(False, "--use-approved", help="Send approved sheets as references (refine)"),
     seed: Optional[int] = typer.Option(None, "--seed"),
     approve: Optional[str] = typer.Option(None, "--approve", help="Approve sheet version, e.g. v2 (no spend)"),
+    discard: Optional[str] = typer.Option(None, "--discard", help="Move a sheet you don't want to discarded/, e.g. v3"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     yes: bool = typer.Option(False, "--yes", "-y"),
 ):
-    """Generate character reference sheets into library/characters/<name>/, or approve one."""
+    """Generate character reference sheets into library/characters/<name>/, or approve / discard one."""
     from .stages import characters as C
 
     paths, settings = _ctx()
     if approve:
         f = C.approve(paths, name, parse_version(approve))
         typer.echo(f"Approved {name}/{f} as reference sheet.")
+        return
+    if discard:
+        f = C.discard(paths, name, parse_version(discard))
+        typer.echo(f"Moved {name}/{f} to {name}/discarded/.")
         return
     n = n or int(pipeline_cfg(paths.root)["characters"]["variants"])
     plan = C.build(paths, name, n=n, model_key=model, use_approved=use_approved, seed=seed)

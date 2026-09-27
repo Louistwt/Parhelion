@@ -131,6 +131,11 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
     },
     onSuccess: (_, name) => { toast.success(`${name} ${c.approved_sheets.includes(name) ? "unapproved" : "approved as reference"}`); refresh(); },
   });
+  const discard = useMutation({
+    mutationFn: (name: string) => api.post(`/api/characters/${c.name}/sheets/v${name.match(/_v(\d+)\./)?.[1]}/discard`),
+    onSuccess: (_, name) => { toast.success(`${name} discarded`); refresh(); },
+    onError: (e) => toast.error(String(e)),
+  });
   const dirty = display !== c.display_name || block !== c.prompt_block || style !== savedStyle;
   const images = c.sheets.map((s) => ({ name: s, src: fileUrl("library", "characters", c.name, s) }));
   const n = settings.data?.pipeline.characters.variants ?? 2;
@@ -182,11 +187,12 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
       </CardContent>
       {open !== null && (
         <Lightbox
-          title={`${c.display_name || c.name} — Approve toggles a sheet as reference`}
+          title={`${c.display_name || c.name} — Approve toggles a sheet as reference; Discard hides one you don't want`}
           images={images}
           approved={c.approved_sheets}
           start={open}
           onApprove={(name) => toggle.mutate(name)}
+          onDiscard={(name) => discard.mutate(name)}
           onClose={() => setOpen(null)}
         />
       )}

@@ -170,7 +170,7 @@ parhelion new <slug> --lang mandarin|cantonese --seconds 60
 parhelion status <project>
 parhelion lint <project>
 parhelion timing <project>
-parhelion character <name> [--n 2] [--model ...] [--dry-run] [--yes]
+parhelion character <name> [--n 2] [--model ...] [--dry-run] [--yes]   # also --approve vN / --discard vN
 parhelion keyframes <project> [--shot S03] [--n 3] [--model ...] [--dry-run] [--yes]
 parhelion approve <project> keyframe|audio|clip|lipsync <S03|L01> v2
 parhelion storyboard <project>
@@ -196,7 +196,7 @@ npm run dev                             # (repo root) API + UI with hot reload a
 - All providers behind the interfaces in `providers/base.py`. **Models are not decided**: `config/models.yaml` lists candidates per stage (first = default); switching model is a config edit or `--model`, never a code change.
 - **Verify model IDs, parameters and prices from current official docs before using them.** Record what you verified and when in STATE.md and `config/prices.yaml`. `parhelion prices check` compares against fal's pricing API.
 - **Cost guard:** before any paid call, print an itemised estimate and require confirmation (`--yes` to skip). Enforce `PARHELION_MAX_SPEND_PER_RUN` (block) and `PARHELION_MONTHLY_BUDGET` (warn at 80%, block at 100%). Log every paid call to `data/costs.jsonl`.
-- Never overwrite generated media. Always write a new version (`_v2`, `_v3`).
+- Never overwrite generated media. Always write a new version (`_v2`, `_v3`). Unwanted outputs are discarded, not deleted: moved with their sidecar to a `discarded/` subfolder, and their version number is never reused (`versioning.discard`).
 - Save the exact prompt, model, seed and parameters next to every generated file (`*.json` sidecar).
 - Async jobs: use the provider's queue API with timeouts and retries; a failed job must not crash the run or lose completed work.
 - `--dry-run` on every paid command.

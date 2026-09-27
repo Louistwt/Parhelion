@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..config import Paths, UserError, image_model, prices, prompt_templates
 from ..cost import unit_price
 from ..providers.base import ImageJob
-from ..versioning import IMAGE_EXTS, all_paths, find_version
+from ..versioning import IMAGE_EXTS, all_paths, discard as discard_file, find_version
 from .imagegen import PlannedJob
 from .imagegen_plan import RunPlan
 from .prompts import approved_sheet_paths, character_dir, compose_character_prompt, load_character, save_character
@@ -47,6 +47,18 @@ def approve(paths: Paths, name: str, version: int) -> str:
     if f.name not in char.approved_sheets:
         char.approved_sheets.append(f.name)
         save_character(paths, char)
+    return f.name
+
+
+def discard(paths: Paths, name: str, version: int) -> str:
+    """Hide a sheet you don't want: moved to discarded/ (never deleted; its version number is not reused)."""
+    char = load_character(paths, name)
+    f = find_version(character_dir(paths, name), "sheet", version, IMAGE_EXTS)
+    if f is None:
+        raise UserError(f"No sheet_v{version} for {name}")
+    if f.name in char.approved_sheets:
+        raise UserError(f"{f.name} is approved — unapprove it before discarding")
+    discard_file(f)
     return f.name
 
 

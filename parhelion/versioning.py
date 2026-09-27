@@ -2,16 +2,21 @@
 
 `exts` may be one extension (".html") or several (IMAGE_EXTS) — version numbers are shared
 across them, so S01_v1.png and S01_v2.jpg never collide.
+
+Unwanted outputs are never deleted: `discard` moves them (and their .json sidecar) into a
+`discarded/` subfolder, which still counts towards the next version number.
 """
 
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 
 from .config import UserError
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+DISCARDED = "discarded"
 
 
 def _as_tuple(exts: str | tuple[str, ...]) -> tuple[str, ...]:
@@ -36,8 +41,8 @@ def existing_versions(directory: Path, stem: str, exts: str | tuple[str, ...]) -
 
 
 def next_version(directory: Path, stem: str, exts: str | tuple[str, ...]) -> int:
-    versions = existing_versions(directory, stem, exts)
-    return (versions[-1] + 1) if versions else 1
+    versions = existing_versions(directory, stem, exts) + existing_versions(directory / DISCARDED, stem, exts)
+    return (max(versions) + 1) if versions else 1
 
 
 def next_path(directory: Path, stem: str, ext: str, exts: str | tuple[str, ...] | None = None) -> Path:
@@ -57,6 +62,16 @@ def latest_path(directory: Path, stem: str, exts: str | tuple[str, ...]) -> Path
 def all_paths(directory: Path, stem: str, exts: str | tuple[str, ...]) -> list[Path]:
     found = _versions(directory, stem, exts)
     return [found[v] for v in sorted(found)]
+
+
+def discard(path: Path) -> Path:
+    """Move a generated file and its .json sidecar into <dir>/discarded/. Returns the new path."""
+    target_dir = path.parent / DISCARDED
+    target_dir.mkdir(exist_ok=True)
+    sidecar = path.with_suffix(".json")
+    if sidecar.exists() and sidecar != path:
+        shutil.move(str(sidecar), str(target_dir / sidecar.name))
+    return Path(shutil.move(str(path), str(target_dir / path.name)))
 
 
 def parse_version(text: str) -> int:
