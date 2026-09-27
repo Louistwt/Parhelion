@@ -11,6 +11,11 @@ from .imagegen_plan import RunPlan
 from .prompts import approved_sheet_paths, character_dir, compose_character_prompt, load_character, save_character
 
 
+def sheet_params(model: dict) -> dict:
+    """Sheets are three full-body views in a row, so they use the model's landscape `sheet_params` (models.yaml)."""
+    return {**model.get("params", {}), **model.get("sheet_params", {})}
+
+
 def build(paths: Paths, name: str, *, n: int, model_key: str | None, use_approved: bool = False, seed: int | None = None) -> RunPlan:
     """Plan a sheet run. No side effects, no spend."""
     char = load_character(paths, name)
@@ -22,7 +27,7 @@ def build(paths: Paths, name: str, *, n: int, model_key: str | None, use_approve
         label=f"{name} sheet", out_dir=character_dir(paths, name), stem="sheet", endpoint=endpoint,
         model_key=model["key"], unit_price=price, unit=unit,
         job=ImageJob(prompt=compose_character_prompt(prompt_templates(paths.root), char), num_images=n,
-                     reference_images=refs, seed=seed, params=dict(model.get("params", {}))),
+                     reference_images=refs, seed=seed, params=sheet_params(model)),
     )
     notes = []
     if not model.get("verified"):

@@ -87,7 +87,9 @@ regenerate only rejected shots.
 - Subtitles are burned in assembly from `text_subtitle` (Pillow-rendered PNG overlays, CJK font from `config/pipeline.yaml` → `assembly.subtitle_fonts`); a clean version and an SRT are always produced for CapCut.
 - Simple camera moves. Complex motion causes character drift.
 - Always pass character sheet images as references for consistency.
-- **Prompts come from templates.** `library/prompt_templates.yaml` holds the style block, character blocks, framing vocabulary and negative block. Claude fills only the per-shot `action` and `setting` fields; `parhelion` composes the final prompt.
+- **Style is chosen per character** (`character.yaml` `style:` → a key under `styles:` in `prompt_templates.yaml`, e.g. `cartoon`, `realistic`; human choice, set on the Characters page). Shots use their characters' style; shots with nobody in frame use the style of the script's characters. One style per video (lint errors on a mixed shot, warns on a mixed script).
+- Character sheets are generated landscape (`sheet_params` in `config/models.yaml`) so the three full-body views fit in one row. Write `prompt_block` as plain sentences: age, ethnicity, build, hair, full outfit down to the shoes (markdown is flattened, but headings are dropped).
+- **Prompts come from templates.** `library/prompt_templates.yaml` holds the named styles, character blocks, framing vocabulary and negative block. Claude fills only the per-shot `action` and `setting` fields; `parhelion` composes the final prompt.
 
 ## Checks (`parhelion lint <project>`)
 
@@ -150,7 +152,7 @@ Parhelion/
     stages/voice.py  retime.py  clips.py  assemble.py
     templates/storyboard.html.j2  dashboard.html.j2
   library/
-    characters/<name>/character.yaml (prompt_block, approved_sheets) + description.md + sheet_vN.png
+    characters/<name>/character.yaml (prompt_block, style, approved_sheets, voice) + description.md + sheet_vN.png
     props/  pronunciation.json  banned_terms.txt  prompt_templates.yaml  voices.yaml
   parhelion/api/app.py  jobs.py  drafts.py   # local JSON API for the UI
   web/                          # React + Vite + TS frontend (web/dist, node_modules gitignored)

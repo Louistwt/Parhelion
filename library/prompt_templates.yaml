@@ -1,10 +1,18 @@
 # Prompt building blocks. `parhelion` composes final prompts from these — Claude only fills
-# per-shot `setting` and `action` in shotlist.json. Style wording is a HUMAN creative choice:
-# the values below are neutral drafts to be replaced after the smoke test.
+# per-shot `setting` and `action` in shotlist.json. Style wording is a HUMAN creative choice.
 
-style: >-
-  flat 2D cartoon illustration, clean outlines, simple shading, soft even lighting,
-  vertical 9:16 composition, consistent character design
+# Each character picks a style (character.yaml `style:`, or the Style menu on the Characters page).
+# Shots use the style of the characters in them; shots with nobody in frame use the style of the
+# script's characters. Keep one style per video (lint warns on a mix). Add styles freely.
+default_style: cartoon
+styles:
+  cartoon: >-
+    flat 2D cartoon illustration, clean outlines, simple shading, soft even lighting,
+    consistent character design
+  realistic: >-
+    photorealistic photograph of real people, natural skin texture, realistic proportions,
+    soft natural daylight, 35mm lens, shallow depth of field, consistent appearance,
+    not a cartoon, not an illustration, not anime, not a 3D render
 
 # Must appear in every image prompt (lint checks for it).
 negative: >-
@@ -21,12 +29,14 @@ framings:
 
 # Placeholders: {style} {framing} {setting} {characters} {action} {props} {negative}
 shot: >-
-  {style}. {framing}. Setting: {setting}. {characters} Action: {action}. {props}{negative}.
+  {style}, vertical 9:16 composition. {framing}. Setting: {setting}. {characters} Action: {action}. {props}{negative}.
 
 # Placeholders: {style} {character} {negative}
+# Sheets are generated landscape (models.yaml `sheet_params`) so the three views fit in one row.
 character_sheet: >-
-  {style}. Character reference sheet of one single character shown three times: front view,
-  three-quarter view and side view, full body, neutral standing pose, plain light grey background.
+  {style}. Character turnaround sheet: the same single person shown three times side by side in one
+  horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to
+  shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background.
   {character} {negative}.
 
 # ---------- image-to-video ----------

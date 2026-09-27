@@ -2,7 +2,7 @@
 
 Living document. Claude Code updates this at the end of every session.
 
-_Last updated: 2026-09-24_
+_Last updated: 2026-09-27_
 
 ## Current phase
 
@@ -11,6 +11,8 @@ are built and tested with fake providers (2026-09-24). Next: add fal credit, pic
 
 ## Decisions made
 
+- **Image style is chosen per character (2026-09-27)**: `character.yaml` `style:` picks a named block in `library/prompt_templates.yaml` `styles:` (`cartoon` = the old placeholder and the default, `realistic` = photoreal draft wording, a human choice to refine). Set on the Characters page. Shots take their characters' style; one style per video (lint). Character sheets are now generated landscape (`sheet_params`, Seedream 1920×1080 / others 16:9) so the three full-body views fit in one row; the first sheets were cartoon and stacked because the only style was cartoon and the canvas was 9:16.
+- **Demo A changed (2026-09-27)**: no longer thyroid cancer / AI twin. Now a 30 s Mandarin skit, "what if" story: 小明 (client, owns cars) and 小朱 (agent); key point = mainland basic insurance only partly reimburses a child's treatment vs HK medical cover arranged while healthy. Draft brief: `docs/briefs/demo-a-cars.md`.
 - **Name: Parhelion** (renamed from Mirage on 2026-09-24 because Mirage is used by existing companies).
 - Local pipeline. **Local UI (2026-09-24):** `parhelion ui` = React + Vite + TS frontend (`web/`) on a FastAPI JSON API (`parhelion/api/`), bound to 127.0.0.1, single user, no login. Chosen over server-rendered HTMX for better UX and as a base for a future product. Components are **shadcn/ui** (Tailwind v4, radix base, nova preset, brand blue as `--primary`, light/dark/system toggle). `npm run dev` at the repo root runs API + UI together (npm workspace + concurrently). No hosting or database. The storyboard is still a static HTML file (print to PDF).
 - **Scope changed 2026-09-24: the demos are finished videos**, not storyboards only (partner's request). Pipeline output is a rough cut + CapCut folder; polish is manual in CapCut. The storyboard stays as the checkpoint before clip spend.
@@ -46,6 +48,8 @@ are built and tested with fake providers (2026-09-24). Next: add fal credit, pic
   - [x] Video stages built (2026-09-24): voice (TTS) + voice track + retime, clips (image-to-video), lip-sync, rough-cut assembly + CapCut folder; CLI + UI tabs Voice / Clips / Video; 36 tests pass (fake providers + real ffmpeg on generated media)
   - [ ] Raise `PARHELION_MAX_SPEND_PER_RUN` to ~$10 (a full clip run for 12 shots is ~$2.50) and set `PARHELION_MONTHLY_BUDGET` (suggest $50)
   - [ ] Pick voices for 小王 / 张叔 on the Characters page (preview ≈ $0.003 each)
+  - [x] fal credit added; first paid runs 2026-09-27: 2 character sheet runs for `siuming` (小明) and `smallpig` (小朱), 2 images each on Seedream v4 (est. $0.12; 1 failed run at $0). Result: cartoon + messy layout → fixed by the per-character style + landscape sheets
+  - [x] Per-character style (cartoon / realistic) + landscape sheets + markdown-safe look text; 45 tests pass (2026-09-27)
   - [ ] Smoke test (≈ $0.50, confirm first): 1 character on 2–3 image models, 1 keyframe, 2 voice lines, 1 clip — check quality and that billing matches the ledger
   - [ ] `parhelion cost sync` and check that the dashboard matches the fal console
 - [ ] **Phase 1: Demo B video**: brief (partner inspiration) → script → fact-check → voice → shots → keyframes → storyboard (partner OK) → clips → rough cut → CapCut
@@ -81,6 +85,7 @@ _(model id, provider, key params, price, date verified, source URL)_
 
 - 2026-09-24, fal queue API: `POST https://queue.fal.run/{endpoint_id}` with header `Authorization: Key $FAL_KEY`. The response includes `request_id`, `status_url` and `response_url`. Statuses are `IN_QUEUE`, `IN_PROGRESS` and `COMPLETED`. Source: fal.ai/docs/model-apis/model-endpoints/queue
 - 2026-09-24, fal billing: `GET https://api.fal.ai/v1/account/billing?expand=credits` returns `credits.current_balance`. `GET https://api.fal.ai/v1/models/billing-events` (params `start`, `end`, `request_id`, `cursor`, `limit`) returns `billing_events[].cost_total`. Both **need an ADMIN API key**. Source: fal.ai/docs/platform-apis/v1/…
+- 2026-09-27, sheet sizes (fal model API pages): Seedream v4 `image_size` enum `square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, landscape_16_9, auto, auto_2K, auto_4K`, or custom `{width,height}` with total pixels between 960×960 and 4096×4096 (1920×1080 OK). Nano Banana `aspect_ratio`: 21:9 16:9 3:2 4:3 5:4 1:1 4:5 3:4 2:3 9:16. FLUX Kontext pro `aspect_ratio`: 21:9 16:9 4:3 3:2 1:1 2:3 3:4 9:16 9:21.
 - 2026-09-24, fal pricing: `GET https://api.fal.ai/v1/models/pricing?endpoint_id=…` returns `prices[].unit_price` and `unit`. Live check with our key: seedream v4 text-to-image/edit $0.03, nano-banana (+/edit) $0.0398, flux-pro/kontext text-to-image + multi $0.04 per image — all match config/prices.yaml.
 - 2026-09-24, `fal-ai/bytedance/seedream/v4/edit`:
   - inputs: `prompt`, `image_urls` (≤10), `image_size` (enum or `{width,height}`), `num_images`, `seed`, `enable_safety_checker`
@@ -95,7 +100,7 @@ _(model id, provider, key params, price, date verified, source URL)_
 
 _(per test / per video, actual)_
 
-- none yet
+- 2026-09-27 character sheets (siuming ×2 runs, smallpig ×1), Seedream v4, still the old cartoon/9:16 code: est. $0.18 (actual not synced yet: run `parhelion cost sync`)
 
 ## Open questions
 
@@ -105,7 +110,8 @@ _(per test / per video, actual)_
 - Budget numbers: `PARHELION_MAX_SPEND_PER_RUN` (suggested $2) and `PARHELION_MONTHLY_BUDGET` (suggested $30).
 - Display currency: USD only, or USD + HKD?
 - Client quote: pending your explanation of the business situation.
-- Demo A (partner's AI twin): tool, consent and likeness terms. Out of storyboard scope for now.
+- Demo A (new story): partner to confirm the key point wording and facts F1–F6 in `docs/briefs/demo-a-cars.md`, and whether "medical fees" means medical cover, CI cover or both. Humans: hook line, closing line, "what to say" line, 小明's and the child's ages.
+- Character ids: the brief says `xiaoming`/`xiaozhu` but the library folders are `siuming`/`smallpig`. The script must use the folder names (or rename the folders).
 - Key points for Demos B and C from partner. **Demo B draft brief** is in `docs/briefs/demo-b-oesophageal.md` (key-point options A–D; suggestion A = guaranteed renewal vs one-year plans). Waiting on partner: pick key point, confirm facts F1–F5, pick "what to say".
 - `PARHELION_MONTHLY_BUDGET` is not set in `.env` (defaults to $30).
 - Tracking/measurement: which channel will the broker use (WhatsApp / WeChat / LMS)? Does the insurer accept a form + QR end card, or want a hosted player? Who pays for hosting?
@@ -116,11 +122,11 @@ _(per test / per video, actual)_
 
 All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainland point each unless the brief says otherwise. All medical/insurance facts must be verified by partner. **Concepts below are drafts to discuss, not fixed.**
 
-**Demo A: Thyroid cancer**
-- Language: Mandarin
-- Style (draft): partner's AI twin (avatar tool, decided later; outside the storyboard pipeline)
-- Concept (draft): a veteran responds to a rookie who told a client "thyroid cancer is a small illness, don't worry."
-- Key point (to verify): how early-stage thyroid cancer is classified/paid under mainland standardised CI definitions vs typical HK cover.
+**Demo A: "Which car would you sell?"** (changed 2026-09-27)
+- Language: Mandarin, 30 s
+- Style (draft): skit, realistic style; characters 小明 (`siuming`, client, owns a couple of cars) and 小朱 (`smallpig`, agent)
+- Concept (draft): 小朱 kindly asks which car 小明 would sell if his child needed money for treatment tomorrow; 小明 imagines it and realises cover must be set up while the family is healthy. No sick child on screen.
+- Key point (to verify): mainland basic insurance only partly reimburses a child's treatment; HK medical cover can pay for treatment in HK. Brief: `docs/briefs/demo-a-cars.md`.
 
 **Demo B: Oesophageal cancer** ← build first
 - Language: Mandarin
@@ -136,6 +142,7 @@ All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainl
 
 ## Next steps
 
+0. (2026-09-27) Merge branch `claude/review-claude-state-docs-72282e` into `main`, then on the Characters page set Style = realistic for 小明 and 小朱, rewrite their look text as plain sentences (age, ethnicity, build, outfit incl. shoes), and regenerate sheets (≈ $0.12 on Seedream; confirm first). Copy `docs/briefs/demo-a-cars.md` into the Demo A project's `brief.md`.
 1. Start the UI: `npm install` once, then `npm run dev` → http://127.0.0.1:5173 (or `npm start` for the single-server build on :8765). See `docs/setup.md`.
 2. Reopen Claude Code in `~/Projects/Parhelion`. Create the GitHub repo (see `docs/setup.md`).
 3. Create a fal account, add credit, put the keys in `.env`, and run `parhelion prices check`.

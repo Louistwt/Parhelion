@@ -8,7 +8,7 @@ from typing import Literal
 
 from ..config import Paths, UserError
 from ..schemas import Character, Script, ShotList, Timing
-from .prompts import compose_shot_prompt, load_character
+from .prompts import compose_shot_prompt, load_character, script_style, style_key, style_text
 from .timing import estimate, speech_chars
 
 TODO_MARKERS = ("[TODO", "[todo", "【TODO")
@@ -144,6 +144,21 @@ def lint_shotlist(
                 char_cache[name] = None
         return char_cache[name]
 
+    # styles: every character's style must exist; the video should use one style
+    script_styles: dict[str, list[str]] = {}
+    for name in script.characters:
+        if (c := get_char(name)) is not None:
+            script_styles.setdefault(style_key(templates, c), []).append(name)
+    for key, names in script_styles.items():
+        try:
+            style_text(templates, key)
+        except UserError as e:
+            issues.append(Issue("error", "characters", f"{', '.join(names)}: {e}"))
+    if len(script_styles) > 1:
+        mix = "; ".join(f"{k}: {', '.join(v)}" for k, v in script_styles.items())
+        issues.append(Issue("warn", "characters", f"characters use different styles ({mix})"))
+    fallback_style = script_style(paths, templates, script.characters)
+
     negative = " ".join(templates["negative"].split()).rstrip(".")
     prev_end: float | None = None
     for shot in shotlist.shots:
@@ -186,7 +201,14 @@ def lint_shotlist(
                 chars.append(c)
                 if not c.approved_sheets:
                     issues.append(Issue("warn", w, f"{name!r} has no approved sheet — no reference image will be sent"))
-        prompt = compose_shot_prompt(templates, shot, chars)
+        shot_styles = sorted({style_key(templates, c) for c in chars})
+        if len(shot_styles) > 1:
+            issues.append(Issue("error", w, f"characters in one shot use different styles: {', '.join(shot_styles)}"))
+        try:
+            prompt = compose_shot_prompt(templates, shot, chars, fallback_style)
+        except UserError as e:
+            issues.append(Issue("error", w, str(e)))
+            continue
         if negative not in prompt:
             issues.append(Issue("error", w, "composed prompt is missing the negative (no-text) block — check the 'shot' template"))
         for term in _find_banned(prompt, banned):

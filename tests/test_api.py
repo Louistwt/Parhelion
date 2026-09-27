@@ -134,3 +134,13 @@ def test_path_traversal_blocked(client):
     assert client.get("/files/projects/%2e%2e/%2e%2e/etc/passwd").status_code == 404
     assert client.get("/files/library/../config/models.yaml").status_code in (404, 422)
     assert client.get("/api/projects/..%2F..%2Fetc").status_code in (400, 404)
+
+
+def test_character_style(client):
+    data = client.get("/api/characters").json()
+    assert "realistic" in data["styles"] and data["default_style"] in data["styles"]
+    assert client.post("/api/characters", json={"name": "laoli", "prompt_block": "old man", "style": "realistic"}).status_code == 200
+    assert client.post("/api/characters", json={"name": "bad", "prompt_block": "x", "style": "nope"}).status_code == 400
+    assert client.put("/api/characters/laoli", json={"style": "cartoon"}).status_code == 200
+    laoli = next(c for c in client.get("/api/characters").json()["characters"] if c["name"] == "laoli")
+    assert laoli["style"] == "cartoon"

@@ -136,10 +136,17 @@ export interface Character {
   name: string;
   display_name: string;
   prompt_block: string;
+  style: string | null;
   approved_sheets: string[];
   sheets: string[];
   voice: Voice | null;
   voice_previews: string[];
+}
+
+export interface CharacterList {
+  characters: Character[];
+  styles: string[];
+  default_style: string;
 }
 
 export interface VoiceCatalog {

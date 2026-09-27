@@ -34,7 +34,9 @@ from ..stages import keyframes as K
 from ..stages import lint as L
 from ..stages import storyboard as SB
 from ..stages.imagegen_plan import RunPlan
-from ..stages.prompts import character_dir, compose_shot_prompt, load_character, save_character
+from ..stages.prompts import (
+    character_dir, compose_shot_prompt, default_style, load_character, save_character, script_style, style_text, styles,
+)
 from ..stages.timing import estimate as estimate_timing
 from ..stages.timing import speech_chars
 from ..versioning import IMAGE_EXTS, all_paths, parse_version
@@ -76,11 +78,13 @@ class CharacterBody(BaseModel):
     name: str
     display_name: str = ""
     prompt_block: str
+    style: str | None = None
 
 
 class CharacterUpdate(BaseModel):
     display_name: str | None = None
     prompt_block: str | None = None
+    style: str | None = None
     voice: dict | None = None  # {voice_id, speed, pitch, emotion}; {} clears it
 
 
@@ -319,19 +323,28 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
                 out.append({**c.model_dump(), "sheets": C.sheets(paths, d.name), "voice_previews": previews})
         return out
 
+    def check_style(key: str | None) -> None:
+        try:
+            style_text(prompt_templates(paths.root), key)
+        except UserError as e:
+            raise HTTPException(400, str(e)) from e
+
     @app.get("/api/characters")
     def characters():
-        return {"characters": list_characters()}
+        templates = prompt_templates(paths.root)
+        return {"characters": list_characters(), "styles": list(styles(templates)), "default_style": default_style(templates)}
 
     @app.post("/api/characters")
     def new_character(body: CharacterBody):
         if not NAME_RE.match(body.name):
             raise HTTPException(400, "Name: lowercase letters, digits, - or _ (e.g. zhangshu)")
+        check_style(body.style)
         d = character_dir(paths, body.name)
         if d.exists():
             raise HTTPException(409, f"{body.name} already exists")
         d.mkdir(parents=True)
-        save_character(paths, Character(name=body.name, display_name=body.display_name, prompt_block=body.prompt_block))
+        save_character(paths, Character(name=body.name, display_name=body.display_name, prompt_block=body.prompt_block,
+                                        style=body.style or None))
         (d / "description.md").write_text(f"# {body.display_name or body.name}\n\nHuman notes (not sent to image models).\n", encoding="utf-8")
         return {"ok": True}
 
@@ -342,6 +355,9 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
             c.display_name = body.display_name
         if body.prompt_block is not None:
             c.prompt_block = body.prompt_block
+        if body.style is not None:
+            check_style(body.style)
+            c.style = body.style
         if body.voice is not None:
             c.voice = Voice.model_validate(body.voice) if body.voice.get("voice_id") else None
         save_character(paths, c)
@@ -362,6 +378,7 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         sl = proj.load_shotlist(folder)
         script = proj.load_script(folder) if (folder / "script.json").exists() else None
         templates = prompt_templates(paths.root)
+        fallback_style = script_style(paths, templates, script.characters) if script else None
         out = []
         for s in sl.shots:
             chars = []
@@ -376,7 +393,7 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
                     if (line := script.line(lid)):
                         lines.append({"id": lid, "speaker": line.speaker, "text": line.subtitle})
             out.append({**s.model_dump(), "duration": s.duration, "lines": lines,
-                        "prompt": compose_shot_prompt(templates, s, chars)})
+                        "prompt": compose_shot_prompt(templates, s, chars, fallback_style)})
         return {"shots": out, "framings": list(templates.get("framings", {}))}
 
     @app.put("/api/projects/{p}/shots/{shot_id}")

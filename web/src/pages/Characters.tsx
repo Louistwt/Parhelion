@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, Character, fileUrl, RunRequest, VoiceCatalog } from "../api";
+import { api, Character, CharacterList, fileUrl, RunRequest, VoiceCatalog } from "../api";
 import { Empty, ErrorBox, Loading, PageHeader } from "../components/common";
 import { JobProgress } from "../components/JobProgress";
 import { Lightbox } from "../components/Lightbox";
@@ -95,17 +95,32 @@ function VoicePicker({ c, onGenerate }: { c: Character; onGenerate: (r: RunReque
   );
 }
 
-function CharacterCard({ c, onGenerate }: { c: Character; onGenerate: (r: RunRequest) => void }) {
+type Styles = { styles: string[]; default_style: string };
+
+function StyleSelect({ id, value, onChange, styles }: { id: string; value: string; onChange: (v: string) => void; styles: Styles }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger id={id} className="w-full"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {styles.styles.map((s) => <SelectItem key={s} value={s}>{s}{s === styles.default_style ? " (default)" : ""}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles; onGenerate: (r: RunRequest) => void }) {
   const qc = useQueryClient();
   const settings = useSettings();
+  const savedStyle = c.style ?? styles.default_style;
   const [display, setDisplay] = useState(c.display_name);
   const [block, setBlock] = useState(c.prompt_block);
+  const [style, setStyle] = useState(savedStyle);
   const [model, setModel] = useState("");
   const [useRefs, setUseRefs] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ["characters"] });
   const save = useMutation({
-    mutationFn: () => api.put(`/api/characters/${c.name}`, { display_name: display, prompt_block: block }),
+    mutationFn: () => api.put(`/api/characters/${c.name}`, { display_name: display, prompt_block: block, style }),
     onSuccess: () => { toast.success(`${c.name} saved`); refresh(); },
   });
   const toggle = useMutation({
@@ -116,7 +131,7 @@ function CharacterCard({ c, onGenerate }: { c: Character; onGenerate: (r: RunReq
     },
     onSuccess: (_, name) => { toast.success(`${name} ${c.approved_sheets.includes(name) ? "unapproved" : "approved as reference"}`); refresh(); },
   });
-  const dirty = display !== c.display_name || block !== c.prompt_block;
+  const dirty = display !== c.display_name || block !== c.prompt_block || style !== savedStyle;
   const images = c.sheets.map((s) => ({ name: s, src: fileUrl("library", "characters", c.name, s) }));
   const n = settings.data?.pipeline.characters.variants ?? 2;
   return (
@@ -127,13 +142,19 @@ function CharacterCard({ c, onGenerate }: { c: Character; onGenerate: (r: RunReq
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${c.name}-dn`}>Display name</Label>
-            <Input id={`${c.name}-dn`} value={display} onChange={(e) => setDisplay(e.target.value)} />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${c.name}-dn`}>Display name</Label>
+              <Input id={`${c.name}-dn`} value={display} onChange={(e) => setDisplay(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${c.name}-style`}>Style</Label>
+              <StyleSelect id={`${c.name}-style`} value={style} onChange={setStyle} styles={styles} />
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${c.name}-pb`}>Look — sent to the image model (appearance only, no text)</Label>
-            <Textarea id={`${c.name}-pb`} rows={3} value={block} onChange={(e) => setBlock(e.target.value)} />
+            <Textarea id={`${c.name}-pb`} rows={5} value={block} onChange={(e) => setBlock(e.target.value)} />
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -173,13 +194,14 @@ function CharacterCard({ c, onGenerate }: { c: Character; onGenerate: (r: RunReq
   );
 }
 
-function NewCharacter() {
+function NewCharacter({ styles }: { styles: Styles }) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [display, setDisplay] = useState("");
   const [block, setBlock] = useState("");
+  const [style, setStyle] = useState(styles.default_style);
   const m = useMutation({
-    mutationFn: () => api.post("/api/characters", { name, display_name: display, prompt_block: block }),
+    mutationFn: () => api.post("/api/characters", { name, display_name: display, prompt_block: block, style }),
     onSuccess: () => {
       toast.success(`Added ${display || name}`);
       setName(""); setDisplay(""); setBlock("");
@@ -191,16 +213,17 @@ function NewCharacter() {
     <Card>
       <CardHeader>
         <CardTitle>New character</CardTitle>
-        <CardDescription>Describe the look only: age, build, hair, clothes, colours, a signature prop.</CardDescription>
+        <CardDescription>Describe the look only: age, ethnicity, build, hair, full outfit down to the shoes, colours, a signature prop. Plain sentences work best. Style sets how every image of this character is drawn; keep one style per video.</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-3" onSubmit={submit}>
-          <div className="grid gap-3 sm:grid-cols-[160px_160px_1fr]">
+          <div className="grid gap-3 sm:grid-cols-[160px_160px_160px_1fr]">
             <div className="flex flex-col gap-1.5"><Label htmlFor="nc-id">ID</Label><Input id="nc-id" value={name} onChange={(e) => setName(e.target.value)} placeholder="zhangshu" required /></div>
             <div className="flex flex-col gap-1.5"><Label htmlFor="nc-dn">Display name</Label><Input id="nc-dn" value={display} onChange={(e) => setDisplay(e.target.value)} placeholder="张叔" /></div>
+            <div className="flex flex-col gap-1.5"><Label htmlFor="nc-style">Style</Label><StyleSelect id="nc-style" value={style} onChange={setStyle} styles={styles} /></div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nc-look">Look</Label>
-              <Textarea id="nc-look" rows={2} value={block} onChange={(e) => setBlock(e.target.value)} placeholder="A man in his 60s, round face, grey buzz cut, white singlet, holding a steaming teacup" required />
+              <Textarea id="nc-look" rows={2} value={block} onChange={(e) => setBlock(e.target.value)} placeholder="A Chinese man in his 60s, stocky build, round face, grey buzz cut, white singlet, grey trousers, cloth slippers, holding a steaming teacup" required />
             </div>
           </div>
           <div><Button type="submit" disabled={m.isPending}><PlusIcon /> Add character</Button></div>
@@ -212,7 +235,7 @@ function NewCharacter() {
 }
 
 export function Characters() {
-  const q = useQuery({ queryKey: ["characters"], queryFn: () => api.get<{ characters: Character[] }>("/api/characters") });
+  const q = useQuery({ queryKey: ["characters"], queryFn: () => api.get<CharacterList>("/api/characters") });
   const [pending, setPending] = useState<RunRequest | null>(null);
   const { jobId, setJob } = useScopeJob("characters", (j) => j.kind === "character" || j.kind === "voice_preview");
   return (
@@ -222,8 +245,8 @@ export function Characters() {
       {q.isLoading && <Loading />}
       <ErrorBox error={q.error} />
       {q.data && q.data.characters.length === 0 && <Empty title="No characters yet">Add one below — describe the look only.</Empty>}
-      {q.data?.characters.map((c) => <CharacterCard key={`${c.name}-${c.prompt_block}-${c.display_name}`} c={c} onGenerate={setPending} />)}
-      <NewCharacter />
+      {q.data?.characters.map((c) => <CharacterCard key={`${c.name}-${c.prompt_block}-${c.display_name}-${c.style}`} c={c} styles={q.data} onGenerate={setPending} />)}
+      {q.data && <NewCharacter styles={q.data} />}
       {pending && <SpendModal request={pending} onClose={() => setPending(null)} onStarted={(job) => setJob(job.id)} />}
     </div>
   );

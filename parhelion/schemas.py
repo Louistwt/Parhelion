@@ -158,6 +158,7 @@ class Character(BaseModel):
     name: str
     display_name: str = ""
     prompt_block: str
+    style: str | None = None  # key in prompt_templates.yaml `styles`; None = default_style
     approved_sheets: list[str] = []
     voice: Voice | None = None
 

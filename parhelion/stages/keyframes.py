@@ -12,7 +12,7 @@ from ..schemas import Shot
 from ..versioning import IMAGE_EXTS, find_version
 from .imagegen import PlannedJob
 from .imagegen_plan import RunPlan
-from .prompts import approved_sheet_paths, compose_shot_prompt, load_character
+from .prompts import approved_sheet_paths, compose_shot_prompt, load_character, script_style
 
 
 def select_shots(shots: list[Shot], shot_ids: list[str] | None, include_approved: bool) -> list[Shot]:
@@ -36,6 +36,8 @@ def build(
     model = image_model(paths.root, model_key)
     templates = prompt_templates(paths.root)
     price_table = prices(paths.root)
+    script_chars = proj.load_script(folder).characters if (folder / "script.json").exists() else []
+    fallback_style = script_style(paths, templates, script_chars)
     jobs, notes = [], []
     if not model.get("verified"):
         notes.append(f"Model {model['key']!r} is marked unverified in config/models.yaml.")
@@ -50,7 +52,7 @@ def build(
             PlannedJob(
                 label=shot.id, out_dir=folder / "keyframes", stem=shot.id, endpoint=endpoint, model_key=model["key"],
                 unit_price=price, unit=unit,
-                job=ImageJob(prompt=compose_shot_prompt(templates, shot, chars), num_images=n,
+                job=ImageJob(prompt=compose_shot_prompt(templates, shot, chars, fallback_style), num_images=n,
                              reference_images=refs, seed=seed, params=dict(model.get("params", {}))),
             )
         )

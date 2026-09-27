@@ -3,6 +3,10 @@
 
 # generated media, ledgers, reports
 projects/
+library/characters/*/sheet_v*.png
+library/characters/*/sheet_v*.jpg
+library/characters/*/sheet_v*.webp
+library/characters/*/voice_preview_*
 data/
 output/
 
@@ -25,3 +29,6 @@ Thumbs.db
 # web UI
 node_modules/
 web/dist/
+
+# Claude Code worktrees
+.claude/worktrees/

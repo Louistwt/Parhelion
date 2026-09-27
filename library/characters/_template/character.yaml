@@ -4,6 +4,10 @@ display_name: 示例
 # Visual description used verbatim in prompts. Describe look only (age, build, hair,
 # clothes, colours, distinctive props). Humans approve this text.
 prompt_block: >-
-  A man in his 30s, short black hair, round glasses, light blue shirt, dark trousers.
+  A Chinese man in his 30s, slim build, short black hair, round glasses, light blue shirt,
+  dark trousers, black leather shoes.
+# Image style: a key under `styles:` in library/prompt_templates.yaml (e.g. cartoon, realistic).
+# Leave empty for the default. Keep one style per video.
+style: realistic
 # Filled by `parhelion character <name> --approve vN`. Used as reference images.
 approved_sheets: []

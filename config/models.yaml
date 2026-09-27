@@ -2,6 +2,8 @@
 # Models are NOT decided yet — this list is for the smoke-test comparison (see STATE.md).
 # `text_endpoint` is used when there are no reference images, `edit_endpoint` when there are.
 # `params` are passed through to the provider unchanged. Prices live in config/prices.yaml.
+# `sheet_params` (image models) override `params` for character sheets only: three full-body views in one row
+# need a landscape canvas. Keyframes stay 9:16.
 
 image:
   - key: seedream-v4
@@ -12,6 +14,8 @@ image:
     params:
       image_size: {width: 1080, height: 1920}
       enable_safety_checker: true
+    sheet_params:               # 2026-09-27: custom size OK if total pixels are between 960x960 and 4096x4096
+      image_size: {width: 1920, height: 1080}
 
   - key: nano-banana
     provider: fal
@@ -21,6 +25,8 @@ image:
     params:
       aspect_ratio: "9:16"
       output_format: png
+    sheet_params:
+      aspect_ratio: "16:9"      # 2026-09-27: allowed values 21:9 16:9 3:2 4:3 5:4 1:1 4:5 3:4 2:3 9:16
 
   - key: flux-kontext-pro
     provider: fal
@@ -29,6 +35,8 @@ image:
     verified: null              # endpoint ids + price confirmed via fal pricing API 2026-09-24; params NOT verified
     params:
       aspect_ratio: "9:16"
+    sheet_params:
+      aspect_ratio: "16:9"      # 2026-09-27: allowed values 21:9 16:9 4:3 3:2 1:1 2:3 3:4 9:16 9:21
 
 # ---------- voice (TTS) ----------
 # language_boost: mandarin -> "Chinese", cantonese -> "Chinese,Yue". Voices are set per character (character.yaml)
