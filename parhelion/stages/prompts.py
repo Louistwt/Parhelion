@@ -145,11 +145,18 @@ def compose_shot_prompt(templates: dict, shot: Shot, chars: list[Character], fal
     ))
 
 
-def compose_character_prompt(templates: dict, char: Character) -> str:
+SHEET_FROM_REFERENCE = (
+    "The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; "
+    "ignore the clothes, pose and background of the reference and use the outfit and body described here."
+)
+
+
+def compose_character_prompt(templates: dict, char: Character, with_reference: bool = False) -> str:
     return _clean(
         templates["character_sheet"].format(
             style=style_text(templates, style_key(templates, char)),
             character=_sentence(plain_text(char.prompt_block)),
             negative=_clean(templates["negative"]).rstrip("."),
         )
+        + (f" {SHEET_FROM_REFERENCE}" if with_reference else "")
     )

@@ -26,7 +26,7 @@ def build(paths: Paths, name: str, *, n: int, model_key: str | None, use_approve
     job = PlannedJob(
         label=f"{name} sheet", out_dir=character_dir(paths, name), stem="sheet", endpoint=endpoint,
         model_key=model["key"], unit_price=price, unit=unit,
-        job=ImageJob(prompt=compose_character_prompt(prompt_templates(paths.root), char), num_images=n,
+        job=ImageJob(prompt=compose_character_prompt(prompt_templates(paths.root), char, with_reference=bool(refs)), num_images=n,
                      reference_images=refs, seed=seed, params=sheet_params(model)),
     )
     notes = []

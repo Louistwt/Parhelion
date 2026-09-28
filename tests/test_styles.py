@@ -87,3 +87,17 @@ def test_lint_mixed_styles(root):
 def test_lint_unknown_style(root):
     _add_character(root, "zhangshu", "watercolour")
     assert any("watercolour" in i.message for i in _lint(root) if i.level == "error")
+
+
+def test_sheet_from_reference_keeps_face_not_clothes(root):
+    from PIL import Image
+    paths = Paths(root)
+    d = root / "library" / "characters" / "xiaowang"
+    Image.new("RGB", (30, 40)).save(d / "sheet_v1.jpg")
+    c = load_character(paths, "xiaowang")
+    c.approved_sheets = ["sheet_v1.jpg"]
+    save_character(paths, c)
+    job = characters.build(paths, "xiaowang", n=1, model_key=None, use_approved=True).jobs[0]
+    assert job.endpoint.endswith("/edit") and "ignore the clothes" in job.job.prompt
+    plain = characters.build(paths, "xiaowang", n=1, model_key=None).jobs[0]
+    assert "reference image" not in plain.job.prompt
