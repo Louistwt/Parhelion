@@ -230,6 +230,20 @@ def approve(project: str, kind: str, item: str, version: str):
         raise typer.BadParameter("kind must be keyframe, audio, clip or lipsync (characters: parhelion character <name> --approve vN)")
 
 
+@app.command()
+def discard(project: str, kind: str, item: str, version: str):
+    """Hide an unwanted keyframe: `discard demo-a keyframe S03 v2`. Moved to keyframes/discarded/, never deleted.
+    (Character sheets: parhelion character <name> --discard vN)"""
+    from .stages import keyframes as K
+
+    paths, _ = _ctx()
+    folder = proj.resolve(paths, project)
+    if kind != "keyframe":
+        raise typer.BadParameter("kind must be keyframe (characters: parhelion character <name> --discard vN)")
+    f = K.discard(folder, item, parse_version(version))
+    typer.echo(f"Moved keyframes/{f} to keyframes/discarded/.")
+
+
 # ---------------- video stages ----------------
 
 

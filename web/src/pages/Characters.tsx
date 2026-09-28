@@ -138,12 +138,17 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
   });
   const dirty = display !== c.display_name || block !== c.prompt_block || style !== savedStyle;
   const images = c.sheets.map((s) => ({ name: s, src: fileUrl("library", "characters", c.name, s) }));
+  const reference = c.approved_sheets[c.approved_sheets.length - 1];
   const n = settings.data?.pipeline.characters.variants ?? 2;
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">{c.display_name || c.name} <span className="font-mono text-xs font-normal text-muted-foreground">{c.name}</span></CardTitle>
-        <CardAction><Badge variant={c.approved_sheets.length ? "success" : "warning"}>{c.approved_sheets.length} approved sheet(s)</Badge></CardAction>
+        <CardAction>
+          <Badge variant={reference ? "success" : "warning"} title="Keyframes use one sheet per character: the most recently approved.">
+            {reference ? `reference: ${reference.replace(/\.\w+$/, "")}` : "no reference sheet"}
+          </Badge>
+        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
@@ -170,7 +175,7 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
         <VoicePicker c={c} onGenerate={onGenerate} />
         <ThumbGrid>
           {images.map((im, i) => (
-            <Thumb key={im.name} src={im.src} label={im.name.replace(/\.\w+$/, "")} approved={c.approved_sheets.includes(im.name)} onClick={() => setOpen(i)} />
+            <Thumb key={im.name} src={im.src} label={im.name.replace(/\.\w+$/, "") + (im.name === reference ? " · reference" : "")} approved={c.approved_sheets.includes(im.name)} onClick={() => setOpen(i)} />
           ))}
           {images.length === 0 && <ThumbEmpty label="no sheets yet" />}
         </ThumbGrid>
@@ -187,7 +192,7 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
       </CardContent>
       {open !== null && (
         <Lightbox
-          title={`${c.display_name || c.name} — Approve toggles a sheet as reference; Discard hides one you don't want`}
+          title={`${c.display_name || c.name} — the last approved sheet is the keyframe reference; Discard hides one you don't want`}
           images={images}
           approved={c.approved_sheets}
           start={open}

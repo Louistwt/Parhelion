@@ -9,10 +9,10 @@ from ..config import Paths, UserError, image_model, prices, prompt_templates
 from ..cost import unit_price
 from ..providers.base import ImageJob
 from ..schemas import Shot
-from ..versioning import IMAGE_EXTS, find_version
+from ..versioning import IMAGE_EXTS, discard as discard_file, find_version
 from .imagegen import PlannedJob
 from .imagegen_plan import RunPlan
-from .prompts import approved_sheet_paths, compose_shot_prompt, load_character, script_style
+from .prompts import compose_shot_prompt, load_character, reference_sheet, script_style
 
 
 def select_shots(shots: list[Shot], shot_ids: list[str] | None, include_approved: bool) -> list[Shot]:
@@ -43,7 +43,7 @@ def build(
         notes.append(f"Model {model['key']!r} is marked unverified in config/models.yaml.")
     for shot in shots:
         chars = [load_character(paths, c) for c in shot.characters]
-        refs = [p for c in chars for p in approved_sheet_paths(paths, c)]
+        refs = [p for c in chars if (p := reference_sheet(paths, c)) is not None]  # one per character, see reference_legend
         if chars and not refs:
             notes.append(f"{shot.id}: no approved character sheet — generating without references.")
         endpoint = model["edit_endpoint"] if refs else model["text_endpoint"]
@@ -62,6 +62,21 @@ def build(
 
 def after_run(folder: Path) -> None:
     proj.set_stage(folder, "keyframes", "in_progress")
+
+
+def discard(folder: Path, shot_id: str, version: int) -> str:
+    """Hide a keyframe you don't want: moved to keyframes/discarded/ (never deleted; its version number is not reused)."""
+    shotlist = proj.load_shotlist(folder)
+    shot = shotlist.shot(shot_id)
+    if shot is None:
+        raise UserError(f"No shot {shot_id}")
+    f = find_version(folder / "keyframes", shot_id, version, IMAGE_EXTS)
+    if f is None:
+        raise UserError(f"No keyframes/{shot_id}_v{version}.*")
+    if shot.approved_keyframe == f.name:
+        raise UserError(f"{f.name} is the approved keyframe for {shot_id}: approve another one before discarding it")
+    discard_file(f)
+    return f.name
 
 
 def approve(folder: Path, shot_id: str, version: int) -> str:

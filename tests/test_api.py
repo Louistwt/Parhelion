@@ -156,3 +156,12 @@ def test_discard_sheet(client, root):
     xw = next(c for c in client.get("/api/characters").json()["characters"] if c["name"] == "xiaowang")
     assert xw["sheets"] == ["sheet_v1.png"]
     assert (d / "discarded" / "sheet_v2.png").exists()
+
+
+def test_discard_keyframe_api(client, root):
+    kf = root / "projects" / "2026-09-24-demo" / "keyframes"
+    for v in (1, 2):
+        (kf / f"S01_v{v}.png").write_bytes(b"x")
+    assert client.post("/api/projects/2026-09-24-demo/keyframes/S01/discard/v2").status_code == 200
+    shots = client.get("/api/projects/2026-09-24-demo/keyframes").json()["shots"]
+    assert shots[0]["variants"] == ["S01_v1.png"]

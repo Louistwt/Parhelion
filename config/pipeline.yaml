@@ -14,11 +14,11 @@ shots:
   max_seconds: 8.0
 
 keyframes:
-  variants_per_shot: 2         # cost lever: 2 variants, regenerate only rejected shots
+  variants_per_shot: 1         # one image per run: regenerate or discard the ones you don't want (2026-09-28)
   reroll_factor: 1.2            # used for "cost to finish" forecasts only
 
 characters:
-  variants: 2
+  variants: 1                  # one sheet per run (2026-09-28)
 
 clips:
   variants_per_shot: 1          # video is expensive: one take, regenerate only rejected shots

@@ -35,6 +35,11 @@ function ShotRow({ id, shot, n, model, onGenerate }: {
       qc.invalidateQueries({ queryKey: ["project", id] });
     },
   });
+  const discard = useMutation({
+    mutationFn: (name: string) => api.post(`/api/projects/${id}/keyframes/${shot.id}/discard/v${name.match(/_v(\d+)\./)?.[1]}`),
+    onSuccess: (_, name) => { toast.success(`${name} discarded`); qc.invalidateQueries({ queryKey: ["keyframes", id] }); },
+    onError: (e) => toast.error(String(e)),
+  });
   const images = shot.variants.map((v) => ({ name: v, src: fileUrl("projects", id, "keyframes", v) }));
   return (
     <Card>
@@ -69,6 +74,7 @@ function ShotRow({ id, shot, n, model, onGenerate }: {
           approved={shot.approved ? [shot.approved] : []}
           start={open}
           onApprove={(name) => approve.mutate(name)}
+          onDiscard={(name) => discard.mutate(name)}
           onClose={() => setOpen(null)}
         />
       )}
@@ -83,7 +89,7 @@ export function KeyframesTab({ id }: { id: string }) {
   const [n, setN] = useState<number | null>(null);
   const [pending, setPending] = useState<RunRequest | null>(null);
   const { jobId, setJob } = useScopeJob(`kf:${id}`, (j) => j.kind === "keyframes" && id.endsWith(`-${j.project}`));
-  const variants = n ?? settings.data?.pipeline.keyframes.variants_per_shot ?? 2;
+  const variants = n ?? settings.data?.pipeline.keyframes.variants_per_shot ?? 1;
 
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
@@ -98,7 +104,7 @@ export function KeyframesTab({ id }: { id: string }) {
           <div>
             <div className="font-semibold">{shots.length - missing}/{shots.length} shots approved</div>
             <div className="text-sm text-muted-foreground">
-              Click a thumbnail to compare and approve (<Kbd>Enter</Kbd>). Only approved keyframes go on the storyboard.
+              Click a thumbnail to compare, approve (<Kbd>Enter</Kbd>) or discard. Only approved keyframes go on the storyboard.
             </div>
           </div>
           <div className="flex flex-wrap items-end gap-3">

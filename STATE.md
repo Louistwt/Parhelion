@@ -11,6 +11,7 @@ are built and tested with fake providers (2026-09-24). Next: add fal credit, pic
 
 ## Decisions made
 
+- **Keyframe consistency (2026-09-28):** first keyframes mixed up the two men (glasses, clothes, build) because 4 unlabelled sheets were sent per shot and the sheets disagreed (小朱's both have orange-tinted lenses; 小明 v5 goatee vs v6 mustache). Now: one reference sheet per character (latest approved) + a "image 1 = 小明, image 2 = 小朱" legend; look text is appearance only; mood lives in each shot. Default is **1 image per run** (keyframes and sheets); regenerate or discard instead of generating pairs.
 - **Work directly on `main` in `~/Projects/Parhelion` for now (2026-09-27)** — no Claude worktrees; side branches later, created deliberately. The old worktree `claude/review-claude-state-docs-72282e` is fully merged and can be deleted.
 - **Image style is chosen per character (2026-09-27)**: `character.yaml` `style:` picks a named block in `library/prompt_templates.yaml` `styles:` (`cartoon` = the old placeholder and the default, `realistic` = photoreal draft wording, a human choice to refine). Set on the Characters page. Shots take their characters' style; one style per video (lint). Character sheets are now generated landscape (`sheet_params`, Seedream 1920×1080 / others 16:9) so the three full-body views fit in one row; the first sheets were cartoon and stacked because the only style was cartoon and the canvas was 9:16.
 - **Demo A changed (2026-09-27)**: no longer thyroid cancer / AI twin. Now a 30 s Mandarin skit, "what if" story: 小明 (client, owns cars) and 小朱 (agent); key point = mainland basic insurance only partly reimburses a child's treatment vs HK medical cover arranged while healthy. Draft brief: `docs/briefs/demo-a-cars.md`.
@@ -145,7 +146,7 @@ All: 60–90s target (30s acceptable for early tests), 9:16, one key HK vs mainl
 
 ## Next steps
 
-0. (2026-09-28) Demo A: `shotlist.json` written (6 shots, lint 0 errors). Next: review the Shots tab → Keyframes (6 × 2 ≈ $0.36) → pick one per shot → Storyboard. Voice any time (≈ $0.01); after Build voice track, run retime before clips.
+0. (2026-09-28, later) Keyframe consistency fixes done (one reference sheet per character + legend, look text cleaned, serious mood in the shot list, 1 image per run, discard keyframes, new Shots tab). **Next:** Characters → 小朱 → generate 1 new sheet (clear lenses, ≈ $0.03) and approve it (it becomes his reference); Keyframes → approve S03, discard unwanted ones, generate the rest at 1 each (≈ $0.15). Earlier: Next: review the Shots tab → Keyframes (6 × 2 ≈ $0.36) → pick one per shot → Storyboard. Voice any time (≈ $0.01); after Build voice track, run retime before clips.
 0. (2026-09-27) Merge branch `claude/review-claude-state-docs-72282e` into `main`, then on the Characters page set Style = realistic for 小明 and 小朱, rewrite their look text as plain sentences (age, ethnicity, build, outfit incl. shoes), and regenerate sheets (≈ $0.12 on Seedream; confirm first). Copy `docs/briefs/demo-a-cars.md` into the Demo A project's `brief.md`.
 1. Start the UI: `npm install` once, then `npm run dev` → http://127.0.0.1:5173 (or `npm start` for the single-server build on :8765). See `docs/setup.md`.
 2. Reopen Claude Code in `~/Projects/Parhelion`. Create the GitHub repo (see `docs/setup.md`).

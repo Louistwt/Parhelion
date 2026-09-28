@@ -35,6 +35,12 @@ def approved_sheet_paths(paths: Paths, char: Character) -> list[Path]:
     return [character_dir(paths, char.name) / s for s in char.approved_sheets]
 
 
+def reference_sheet(paths: Paths, char: Character) -> Path | None:
+    """The one sheet sent with keyframes: the most recently approved. One per character keeps the model from
+    mixing people up (several unlabelled sheets made glasses and clothes jump between characters)."""
+    return character_dir(paths, char.name) / char.approved_sheets[-1] if char.approved_sheets else None
+
+
 def _clean(text: str) -> str:
     return " ".join(text.split())
 
@@ -106,12 +112,26 @@ def characters_text(chars: list[Character]) -> str:
     return prefix + " ".join(parts)
 
 
+def reference_legend(chars: list[Character]) -> str:
+    """Tells the model which reference image is which person. Order matches keyframes.build: the shot's characters
+    that have an approved sheet, one image each."""
+    named = [c.display_name or c.name for c in chars if c.approved_sheets]
+    if not named:
+        return ""
+    order = ", ".join(f"image {i} = {n}" for i, n in enumerate(named, 1))
+    return (
+        f"Reference images in order: {order}. Keep each person's face, hairstyle, facial hair, glasses (or no glasses), "
+        "body shape and clothes exactly as in their own reference image; never swap features between people."
+    )
+
+
 def compose_shot_prompt(templates: dict, shot: Shot, chars: list[Character], fallback_style: str | None = None) -> str:
     """Style comes from the shot's characters (lint makes sure they agree); shots without people use fallback_style."""
     key = style_key(templates, chars[0]) if chars else fallback_style
     framing = templates.get("framings", {}).get(shot.framing, shot.framing)
     props = f"Props: {', '.join(shot.props)}. " if shot.props else ""
-    return _clean(
+    legend = reference_legend(chars)
+    return _clean((
         templates["shot"].format(
             style=style_text(templates, key),
             framing=_clean(framing).rstrip("."),
@@ -121,7 +141,8 @@ def compose_shot_prompt(templates: dict, shot: Shot, chars: list[Character], fal
             props=props,
             negative=_clean(templates["negative"]).rstrip("."),
         )
-    )
+        + (f" {legend}" if legend else "")
+    ))
 
 
 def compose_character_prompt(templates: dict, char: Character) -> str:

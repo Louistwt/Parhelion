@@ -86,7 +86,8 @@ regenerate only rejected shots.
 - **Motion prompts come from templates too**: `prompt_templates.yaml` → `motion` / `default_camera` / `motion_negative`. Claude fills a shot's `motion_prompt` (what moves, one simple action) and optionally `camera` (e.g. "slow push in"); nothing else.
 - Subtitles are burned in assembly from `text_subtitle` (Pillow-rendered PNG overlays, CJK font from `config/pipeline.yaml` → `assembly.subtitle_fonts`); a clean version and an SRT are always produced for CapCut.
 - Simple camera moves. Complex motion causes character drift.
-- Always pass character sheet images as references for consistency.
+- Always pass character sheet images as references for consistency: **one sheet per character** (its most recently approved), and the prompt says which reference image is which person (`prompts.reference_legend`). Several unlabelled sheets made features jump between characters.
+- Look text (`prompt_block`) is appearance only: no expressions. Mood and expressions go in each shot's `setting` / `action`. Say what a character does *not* have when it matters (e.g. "no glasses").
 - **Style is chosen per character** (`character.yaml` `style:` → a key under `styles:` in `prompt_templates.yaml`, e.g. `cartoon`, `realistic`; human choice, set on the Characters page). Shots use their characters' style; shots with nobody in frame use the style of the script's characters. One style per video (lint errors on a mixed shot, warns on a mixed script).
 - Character sheets are generated landscape (`sheet_params` in `config/models.yaml`) so the three full-body views fit in one row. Write `prompt_block` as plain sentences: age, ethnicity, build, hair, full outfit down to the shoes (markdown is flattened, but headings are dropped).
 - **Prompts come from templates.** `library/prompt_templates.yaml` holds the named styles, character blocks, framing vocabulary and negative block. Claude fills only the per-shot `action` and `setting` fields; `parhelion` composes the final prompt.
@@ -173,6 +174,7 @@ parhelion timing <project>
 parhelion character <name> [--n 2] [--model ...] [--dry-run] [--yes]   # also --approve vN / --discard vN
 parhelion keyframes <project> [--shot S03] [--n 3] [--model ...] [--dry-run] [--yes]
 parhelion approve <project> keyframe|audio|clip|lipsync <S03|L01> v2
+parhelion discard <project> keyframe S03 v2          # moves it to keyframes/discarded/ (never deleted)
 parhelion storyboard <project>
 parhelion voice <project> [--line L03] [--model ...] [--dry-run] [--yes]
 parhelion voice-track <project> [--approve-latest]   # real timing + audio/track_vN.wav (free)

@@ -428,6 +428,10 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
     def approve_keyframe(p: str, shot_id: str, v: str):
         return {"file": K.approve(folder_of(p), shot_id, parse_version(v))}
 
+    @app.post("/api/projects/{p}/keyframes/{shot_id}/discard/{v}")
+    def discard_keyframe(p: str, shot_id: str, v: str):
+        return {"file": K.discard(folder_of(p), shot_id, parse_version(v))}
+
     # ---------- spend flow ----------
 
     def build_plan(req: RunRequest) -> RunPlan:
