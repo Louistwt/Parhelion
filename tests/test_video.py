@@ -7,7 +7,7 @@ from PIL import Image
 from parhelion import project as proj
 from parhelion.config import Paths, UserError, pipeline_cfg
 from parhelion.cost import Ledger
-from parhelion.media import ffmpeg_exe, find_font, has_stream, probe_duration, video_size
+from parhelion.media import decoded_duration, ffmpeg_exe, find_font, has_stream, probe_duration, video_size
 from parhelion.providers.base import GeneratedImage, MediaProvider, MediaResult, ProviderError
 from parhelion.stages import assemble as AS
 from parhelion.stages import clips as CL
@@ -77,10 +77,11 @@ def test_voice_run_track_retime(root, folder, tmp_path):
         VO.build_track(paths, folder)
     VO.approve_latest(folder, proj.load_script(folder))
     timing, track = VO.build_track(paths, folder)
-    assert timing.source == "tts" and timing.lines[1].start == pytest.approx(1.8, abs=0.01)
-    assert probe_duration(track) == pytest.approx(timing.total_seconds, abs=0.1)
+    first = decoded_duration(folder / "audio" / "L01_v1.mp3")  # decoded length, not the provider's duration_ms
+    assert timing.source == "tts" and timing.lines[1].start == pytest.approx(first + 0.3, abs=0.01)
+    assert probe_duration(track) == pytest.approx(timing.total_seconds, abs=0.05)
     new, issues = RT.run(paths, folder)
-    assert new.shots[0].start == 0 and new.shots[1].start == pytest.approx(1.8, abs=0.01)
+    assert new.shots[0].start == 0 and new.shots[1].start == pytest.approx(first + 0.3, abs=0.01)
     assert new.shots[-1].end == pytest.approx(timing.total_seconds, abs=0.01)
     assert any("S01" in i for i in issues)  # 1.8 s is below the 3 s minimum → flagged
     assert (folder / ".history").exists()

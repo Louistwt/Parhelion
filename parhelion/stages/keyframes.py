@@ -8,11 +8,21 @@ from .. import project as proj
 from ..config import Paths, UserError, image_model, prices, prompt_templates
 from ..cost import unit_price
 from ..providers.base import ImageJob
-from ..schemas import Shot
+from ..schemas import Shot, ShotList
 from ..versioning import IMAGE_EXTS, discard as discard_file, find_version
 from .imagegen import PlannedJob
 from .imagegen_plan import RunPlan
-from .prompts import compose_shot_prompt, load_character, reference_sheet, script_style
+from .prompts import compose_shot_prompt, load_character, reference_images, script_style
+
+
+def location_path(folder: Path, shotlist: ShotList) -> Path | None:
+    """The room reference image, if set (path relative to the project folder)."""
+    if not shotlist.location_ref:
+        return None
+    path = (folder / shotlist.location_ref).resolve()
+    if folder.resolve() not in path.parents or not path.is_file():
+        raise UserError(f"location_ref {shotlist.location_ref!r} not found in the project folder")
+    return path
 
 
 def select_shots(shots: list[Shot], shot_ids: list[str] | None, include_approved: bool) -> list[Shot]:
@@ -38,12 +48,13 @@ def build(
     price_table = prices(paths.root)
     script_chars = proj.load_script(folder).characters if (folder / "script.json").exists() else []
     fallback_style = script_style(paths, templates, script_chars)
+    room = location_path(folder, shotlist)
     jobs, notes = [], []
     if not model.get("verified"):
         notes.append(f"Model {model['key']!r} is marked unverified in config/models.yaml.")
     for shot in shots:
         chars = [load_character(paths, c) for c in shot.characters]
-        refs = [p for c in chars if (p := reference_sheet(paths, c)) is not None]  # one per character, see reference_legend
+        refs = [p for c in chars for p in reference_images(paths, c)] + ([room] if room else [])  # order = reference_legend
         if chars and not refs:
             notes.append(f"{shot.id}: no approved character sheet — generating without references.")
         endpoint = model["edit_endpoint"] if refs else model["text_endpoint"]
@@ -52,7 +63,7 @@ def build(
             PlannedJob(
                 label=shot.id, out_dir=folder / "keyframes", stem=shot.id, endpoint=endpoint, model_key=model["key"],
                 unit_price=price, unit=unit,
-                job=ImageJob(prompt=compose_shot_prompt(templates, shot, chars, fallback_style), num_images=n,
+                job=ImageJob(prompt=compose_shot_prompt(templates, shot, chars, fallback_style, location=bool(room)), num_images=n,
                              reference_images=refs, seed=seed, params=dict(model.get("params", {}))),
             )
         )

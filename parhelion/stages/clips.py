@@ -9,7 +9,7 @@ from .. import project as proj
 from ..config import Paths, UserError, pipeline_cfg, prices, prompt_templates, stage_model
 from ..cost import unit_price
 from ..media import run_ffmpeg
-from ..schemas import Shot
+from ..schemas import Script, Shot, Timing
 from ..versioning import all_paths, next_path
 from .imagegen_plan import RunPlan
 from .mediagen import MediaJob
@@ -115,6 +115,20 @@ def after_run(folder: Path) -> None:
 # ---------- lip-sync ----------
 
 
+def mute_windows(script: Script, timing: Timing, shot: Shot) -> list[tuple[float, float]]:
+    """Parts of the shot's audio window (seconds from shot start) spoken by someone who isn't on screen — the
+    narrator or a character not in the shot. Lip-sync must not hear them, or it moves the visible face to their words."""
+    speakers = {l.id: l.speaker for l in script.lines}
+    out = []
+    for lt in timing.lines:
+        if speakers.get(lt.line_id) in shot.characters:
+            continue
+        a, b = max(lt.start, shot.start), min(lt.end, shot.end)
+        if b > a:
+            out.append((round(a - shot.start, 3), round(b - shot.start, 3)))
+    return out
+
+
 def _segment_inputs(paths: Paths, folder: Path, shot: Shot) -> tuple[Path, Path]:
     """Trim the approved clip and the voice track to the shot window (inputs for lip-sync; kept for reproducibility)."""
     track = latest_track(folder)
@@ -130,7 +144,11 @@ def _segment_inputs(paths: Paths, folder: Path, shot: Shot) -> tuple[Path, Path]
                 "-vf", f"tpad=stop_mode=clone:stop_duration={shot.duration:.3f},fps={fps}", "-an",
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", str(video)])
     audio = next_path(seg_dir, f"{shot.id}_voice", ".wav")
-    run_ffmpeg(["-ss", f"{shot.start:.3f}", "-t", f"{shot.duration:.3f}", "-i", str(track), "-c:a", "pcm_s16le", str(audio)])
+    timing = proj.load_timing(folder)
+    mutes = mute_windows(proj.load_script(folder), timing, shot) if timing else []
+    af = ",".join(f"volume=enable='between(t,{a:.3f},{b:.3f})':volume=0" for a, b in mutes) or "anull"
+    run_ffmpeg(["-ss", f"{shot.start:.3f}", "-t", f"{shot.duration:.3f}", "-i", str(track), "-af", af,
+                "-c:a", "pcm_s16le", str(audio)])
     return video, audio
 
 

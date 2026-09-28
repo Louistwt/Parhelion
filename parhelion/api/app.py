@@ -85,6 +85,7 @@ class CharacterUpdate(BaseModel):
     display_name: str | None = None
     prompt_block: str | None = None
     style: str | None = None
+    face_ref: str | None = None  # file name in the character folder; "" clears it
     voice: dict | None = None  # {voice_id, speed, pitch, emotion}; {} clears it
 
 
@@ -98,6 +99,10 @@ class ShotUpdate(BaseModel):
     motion_prompt: str | None = None
     camera: str | None = None
     on_camera_speech: bool | None = None
+
+
+class ShotListUpdate(BaseModel):
+    location_ref: str | None = None  # "" or null clears it
 
 
 class RunRequest(BaseModel):
@@ -282,7 +287,7 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
             if (folder / "shotlist.json").exists():
                 scope = "script+shots"
                 issues += L.lint_shotlist(proj.load_shotlist(folder), script, proj.load_timing(folder),
-                                          prompt_templates(paths.root), cfg, banned, paths)
+                                          prompt_templates(paths.root), cfg, banned, paths, folder=folder)
         elif (md := proj.latest_script_md(folder)) is not None:
             scope = f"draft {md.name}"
             issues += L.lint_markdown(md, banned)
@@ -362,6 +367,10 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         if body.style is not None:
             check_style(body.style)
             c.style = body.style
+        if body.face_ref is not None:
+            if body.face_ref and not (character_dir(paths, name) / Path(body.face_ref).name).is_file():
+                raise HTTPException(400, f"{body.face_ref} not found for {name}")
+            c.face_ref = Path(body.face_ref).name if body.face_ref else None
         if body.voice is not None:
             c.voice = Voice.model_validate(body.voice) if body.voice.get("voice_id") else None
         save_character(paths, c)
@@ -383,6 +392,7 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         script = proj.load_script(folder) if (folder / "script.json").exists() else None
         templates = prompt_templates(paths.root)
         fallback_style = script_style(paths, templates, script.characters) if script else None
+        room = bool(sl.location_ref)
         out = []
         for s in sl.shots:
             chars = []
@@ -397,8 +407,19 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
                     if (line := script.line(lid)):
                         lines.append({"id": lid, "speaker": line.speaker, "text": line.subtitle})
             out.append({**s.model_dump(), "duration": s.duration, "lines": lines,
-                        "prompt": compose_shot_prompt(templates, s, chars, fallback_style)})
-        return {"shots": out, "framings": list(templates.get("framings", {}))}
+                        "prompt": compose_shot_prompt(templates, s, chars, fallback_style, location=room)})
+        return {"shots": out, "framings": list(templates.get("framings", {})), "location_ref": sl.location_ref}
+
+    @app.put("/api/projects/{p}/shotlist")
+    def update_shotlist(p: str, body: ShotListUpdate):
+        folder = folder_of(p)
+        sl = proj.load_shotlist(folder)
+        ref = body.location_ref or None
+        if ref is not None and not (folder / ref).is_file():
+            raise HTTPException(400, f"{ref} not found in the project folder")
+        sl.location_ref = ref
+        proj.save(folder / "shotlist.json", sl)
+        return {"ok": True}
 
     @app.put("/api/projects/{p}/shots/{shot_id}")
     def update_shot(p: str, shot_id: str, body: ShotUpdate):

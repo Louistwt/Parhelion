@@ -11,8 +11,9 @@ styles:
     consistent character design
   realistic: >-
     photorealistic photograph of real people, natural skin texture, realistic proportions,
-    natural light, 35mm lens, shallow depth of field, consistent appearance,
-    not a cartoon, not an illustration, not anime, not a 3D render
+    natural light, 35mm lens, shallow depth of field, background softly out of focus,
+    candid documentary photo, lived-in real environment with small imperfections, consistent appearance,
+    not a cartoon, not an illustration, not anime, not a 3D render, no CGI look
 
 # Must appear in every image prompt (lint checks for it).
 negative: >-

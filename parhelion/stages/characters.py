@@ -58,6 +58,8 @@ def discard(paths: Paths, name: str, version: int) -> str:
         raise UserError(f"No sheet_v{version} for {name}")
     if f.name in char.approved_sheets:
         raise UserError(f"{f.name} is approved — unapprove it before discarding")
+    if f.name == char.face_ref:
+        raise UserError(f"{f.name} is the face reference — clear it before discarding")
     discard_file(f)
     return f.name
 

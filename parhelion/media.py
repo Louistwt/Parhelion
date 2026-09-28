@@ -44,6 +44,21 @@ def probe_duration(path: Path) -> float:
     return round(int(h) * 3600 + int(mnt) * 60 + float(s), 3)
 
 
+_TIME = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
+
+
+def decoded_duration(path: Path) -> float:
+    """Audio length after decoding (what actually ends up in a mix). Header durations of mp3s include encoder
+    padding, so they read a few tens of ms long."""
+    res = subprocess.run([ffmpeg_exe(), "-hide_banner", "-nostats", "-stats_period", "100", "-i", str(path),
+                          "-vn", "-f", "null", "-"], capture_output=True, text=True)
+    times = _TIME.findall(res.stderr)
+    if not times:
+        return probe_duration(path)
+    h, mnt, s = times[-1]
+    return round(int(h) * 3600 + int(mnt) * 60 + float(s), 3)
+
+
 def has_stream(path: Path, kind: str) -> bool:
     res = subprocess.run([ffmpeg_exe(), "-hide_banner", "-i", str(path)], capture_output=True, text=True)
     return f"Stream #" in res.stderr and f": {kind.capitalize()}:" in res.stderr

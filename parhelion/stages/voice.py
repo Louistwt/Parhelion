@@ -8,7 +8,7 @@ from pathlib import Path
 from .. import project as proj
 from ..config import Paths, UserError, pipeline_cfg, prices, stage_model, voices
 from ..cost import unit_price
-from ..media import probe_duration, run_ffmpeg
+from ..media import decoded_duration, probe_duration, run_ffmpeg
 from ..schemas import LineTiming, Script, Timing, Voice
 from ..versioning import all_paths, find_version, next_path
 from .imagegen_plan import RunPlan
@@ -118,12 +118,9 @@ def takes(folder: Path, line_id: str) -> list[Path]:
 
 
 def take_duration(path: Path) -> float:
-    side = path.with_suffix(".json")
-    if side.exists():
-        ms = (json.loads(side.read_text(encoding="utf-8")).get("response_meta") or {}).get("duration_ms")
-        if ms:
-            return round(ms / 1000, 3)
-    return probe_duration(path)
+    """Length of the decoded audio — what actually goes into the voice track. (The provider's duration_ms ran
+    ~0.05 s long per line, which made late subtitles drift.)"""
+    return decoded_duration(path)
 
 
 def approve(folder: Path, line_id: str, version: int) -> str:

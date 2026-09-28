@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusIcon, SaveIcon, SparklesIcon } from "lucide-react";
+import { PlusIcon, SaveIcon, ScanFaceIcon, SparklesIcon } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +131,11 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
     },
     onSuccess: (_, name) => { toast.success(`${name} ${c.approved_sheets.includes(name) ? "unapproved" : "approved as reference"}`); refresh(); },
   });
+  const setFace = useMutation({
+    mutationFn: (name: string) => api.put(`/api/characters/${c.name}`, { face_ref: c.face_ref === name ? "" : name }),
+    onSuccess: (_, name) => { toast.success(c.face_ref === name ? "Face reference cleared" : `${name} is now the face reference`); refresh(); },
+    onError: (e) => toast.error(String(e)),
+  });
   const discard = useMutation({
     mutationFn: (name: string) => api.post(`/api/characters/${c.name}/sheets/v${name.match(/_v(\d+)\./)?.[1]}/discard`),
     onSuccess: (_, name) => { toast.success(`${name} discarded`); refresh(); },
@@ -146,7 +151,7 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
         <CardTitle className="flex items-center gap-2">{c.display_name || c.name} <span className="font-mono text-xs font-normal text-muted-foreground">{c.name}</span></CardTitle>
         <CardAction>
           <Badge variant={reference ? "success" : "warning"} title="Keyframes use one sheet per character: the most recently approved.">
-            {reference ? `reference: ${reference.replace(/\.\w+$/, "")}` : "no reference sheet"}
+            {reference ? `reference: ${reference.replace(/\.\w+$/, "")}` : "no reference sheet"}{c.face_ref ? ` · face: ${c.face_ref.replace(/\.\w+$/, "")}` : ""}
           </Badge>
         </CardAction>
       </CardHeader>
@@ -175,7 +180,7 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
         <VoicePicker c={c} onGenerate={onGenerate} />
         <ThumbGrid>
           {images.map((im, i) => (
-            <Thumb key={im.name} src={im.src} label={im.name.replace(/\.\w+$/, "") + (im.name === reference ? " · reference" : "")} approved={c.approved_sheets.includes(im.name)} onClick={() => setOpen(i)} />
+            <Thumb key={im.name} src={im.src} label={im.name.replace(/\.\w+$/, "") + (im.name === c.face_ref ? " · face" : "") + (im.name === reference && im.name !== c.face_ref ? " · reference" : "")} approved={c.approved_sheets.includes(im.name)} onClick={() => setOpen(i)} />
           ))}
           {images.length === 0 && <ThumbEmpty label="no sheets yet" />}
         </ThumbGrid>
@@ -198,6 +203,12 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
           start={open}
           onApprove={(name) => toggle.mutate(name)}
           onDiscard={(name) => discard.mutate(name)}
+          extra={(name) => (
+            <Button variant="outline" size="sm" onClick={() => setFace.mutate(name)}
+              title="A close-up of the face, sent with every keyframe next to the full-body sheet (keeps age and features stable)">
+              <ScanFaceIcon /> {c.face_ref === name ? "Face reference ✓" : "Use as face reference"}
+            </Button>
+          )}
           onClose={() => setOpen(null)}
         />
       )}

@@ -173,3 +173,18 @@ def test_estimate_never_replaces_voice_timing(client, root):
     f.write_text(json.dumps({"source": "tts", "chars_per_second": 4.5, "total_seconds": 9.0, "lines": []}))
     assert client.post("/api/projects/2026-09-24-demo/timing").status_code == 409
     assert json.loads(f.read_text())["source"] == "tts"
+
+
+def test_face_ref_and_location_ref_api(client, root):
+    d = root / "library" / "characters" / "xiaowang"
+    (d / "photo_v1.jpg").write_bytes(b"x")
+    assert client.put("/api/characters/xiaowang", json={"face_ref": "photo_v1.jpg"}).status_code == 200
+    assert client.put("/api/characters/xiaowang", json={"face_ref": "missing.jpg"}).status_code == 400
+    xw = next(c for c in client.get("/api/characters").json()["characters"] if c["name"] == "xiaowang")
+    assert xw["face_ref"] == "photo_v1.jpg"
+    kf = root / "projects" / "2026-09-24-demo" / "keyframes"
+    (kf / "S01_v1.png").write_bytes(b"x")
+    assert client.put("/api/projects/2026-09-24-demo/shotlist", json={"location_ref": "keyframes/S01_v1.png"}).status_code == 200
+    assert client.get("/api/projects/2026-09-24-demo/shots").json()["location_ref"] == "keyframes/S01_v1.png"
+    assert client.put("/api/projects/2026-09-24-demo/shotlist", json={"location_ref": ""}).status_code == 200
+    assert client.get("/api/projects/2026-09-24-demo/shots").json()["location_ref"] is None

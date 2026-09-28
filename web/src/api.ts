@@ -137,6 +137,7 @@ export interface Character {
   display_name: string;
   prompt_block: string;
   style: string | null;
+  face_ref: string | null;
   approved_sheets: string[];
   sheets: string[];
   voice: Voice | null;

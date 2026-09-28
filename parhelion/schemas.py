@@ -106,6 +106,7 @@ class Shot(BaseModel):
 
 
 class ShotList(BaseModel):
+    location_ref: str | None = None  # image of the room (path relative to the project folder), sent with every keyframe
     shots: list[Shot] = []
 
     def shot(self, shot_id: str) -> Shot | None:
@@ -159,6 +160,7 @@ class Character(BaseModel):
     display_name: str = ""
     prompt_block: str
     style: str | None = None  # key in prompt_templates.yaml `styles`; None = default_style
+    face_ref: str | None = None  # a close-up / portrait image in the character folder, sent with keyframes
     approved_sheets: list[str] = []
     voice: Voice | None = None
 

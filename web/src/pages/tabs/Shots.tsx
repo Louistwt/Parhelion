@@ -18,7 +18,7 @@ import { api, CharacterList, fileUrl, Shot } from "../../api";
 import { CopyButton, Empty, ErrorBox, Loading } from "../../components/common";
 import { LintPanel } from "../../components/LintPanel";
 
-type ShotsResp = { shots: Shot[] | null; framings: string[] };
+type ShotsResp = { shots: Shot[] | null; framings: string[]; location_ref: string | null };
 type Form = {
   framing: string; setting: string; action: string; notes: string; characters: string[]; props: string[];
   motion_prompt: string; camera: string; on_camera_speech: boolean;
@@ -215,6 +215,12 @@ export function ShotsTab({ id }: { id: string }) {
     },
   });
 
+  const setRoom = useMutation({
+    mutationFn: (location_ref: string) => api.put(`/api/projects/${id}/shotlist`, { location_ref }),
+    onSuccess: () => { toast.success("Room reference saved"); qc.invalidateQueries({ queryKey: ["shots", id] }); qc.invalidateQueries({ queryKey: ["lint", id] }); },
+    onError: (e) => toast.error(String(e)),
+  });
+
   const prompt =
     `Read CLAUDE.md, projects/${id}/script.json, projects/${id}/timing.json and library/prompt_templates.yaml. ` +
     `Write projects/${id}/shotlist.json: shots of 3–8 s that follow timing.json, each with line_ids, framing (from prompt_templates framings), ` +
@@ -236,6 +242,8 @@ export function ShotsTab({ id }: { id: string }) {
     );
   }
   const total = shots.length ? shots[shots.length - 1].end : 0;
+  const roomOptions = shots.filter((s) => s.approved_keyframe).map((s) => `keyframes/${s.approved_keyframe}`);
+  const room = q.data.location_ref;
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -249,7 +257,18 @@ export function ShotsTab({ id }: { id: string }) {
             </Button>
           </CardAction>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Label htmlFor="room-ref">Room reference</Label>
+            <Select value={room ?? "__none"} onValueChange={(v) => setRoom.mutate(v === "__none" ? "" : v)}>
+              <SelectTrigger id="room-ref" className="w-56"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">none</SelectItem>
+                {[...new Set([...(room ? [room] : []), ...roomOptions])].map((r) => <SelectItem key={r} value={r}>{r.replace("keyframes/", "").replace(/\.\w+$/, "")}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground">An approved keyframe of the location, sent with every new keyframe so the room stays the same.</span>
+          </div>
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" aria-label="Shot timeline">
             {shots.map((s, i) => (
               <button key={s.id} type="button" title={`${s.id} · ${s.duration.toFixed(1)}s`}

@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils";
 import { Kbd } from "./common";
 
 /** Full-screen compare view. ←/→ move focus, Enter approves, Esc closes. Optional Discard hides an unwanted image. */
-export function Lightbox({ title, images, approved, start = 0, onApprove, onDiscard, onClose }: {
+export function Lightbox({ title, images, approved, start = 0, onApprove, onDiscard, extra, onClose }: {
   title: string;
   images: { src: string; name: string }[];
   approved: string[];
   start?: number;
   onApprove: (name: string) => void;
   onDiscard?: (name: string) => void;
+  extra?: (name: string) => React.ReactNode;
   onClose: () => void;
 }) {
   const [focus, setFocus] = useState(start);
@@ -49,6 +50,7 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onDisc
           <Button variant="outline" size="sm" onClick={() => setCompare((c) => !c)}>
             {compare ? <SquareIcon /> : <Columns3Icon />} {compare ? "Single view" : "Compare all"}
           </Button>
+          {current && extra?.(current.name)}
           {current && onDiscard && (
             <Button variant="outline" size="sm" disabled={approved.includes(current.name)}
               title={approved.includes(current.name) ? "Unapprove it first" : "Hide this image (moved to discarded/, not deleted)"}

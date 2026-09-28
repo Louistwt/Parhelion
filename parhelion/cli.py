@@ -112,7 +112,8 @@ def lint(project: str):
         issues += L.lint_script(script, cfg, banned, known)
         if (folder / "shotlist.json").exists():
             issues += L.lint_shotlist(
-                proj.load_shotlist(folder), script, proj.load_timing(folder), prompt_templates(paths.root), cfg, banned, paths
+                proj.load_shotlist(folder), script, proj.load_timing(folder), prompt_templates(paths.root), cfg, banned, paths,
+                folder=folder,
             )
     elif (md := proj.latest_script_md(folder)) is not None:
         typer.echo(f"No script.json yet — checking draft {md.name} for TODOs and banned terms only.")

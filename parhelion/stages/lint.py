@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -12,6 +13,7 @@ from .prompts import compose_shot_prompt, load_character, script_style, style_ke
 from .timing import estimate, speech_chars
 
 TODO_MARKERS = ("[TODO", "[todo", "【TODO")
+SPEECH_WORDS = re.compile(r"\b(speak|speaks|speaking|talk|talks|talking|say|says|saying|mouth)\b", re.I)
 
 
 @dataclass
@@ -125,6 +127,7 @@ def lint_shotlist(
     pipeline_cfg: dict,
     banned: list[str],
     paths: Paths,
+    folder: Path | None = None,
 ) -> list[Issue]:
     issues: list[Issue] = []
     lo, hi = float(pipeline_cfg["shots"]["min_seconds"]), float(pipeline_cfg["shots"]["max_seconds"])
@@ -158,6 +161,12 @@ def lint_shotlist(
         mix = "; ".join(f"{k}: {', '.join(v)}" for k, v in script_styles.items())
         issues.append(Issue("warn", "characters", f"characters use different styles ({mix})"))
     fallback_style = script_style(paths, templates, script.characters)
+    room = False
+    if shotlist.location_ref:
+        if folder is not None and not (folder / shotlist.location_ref).is_file():
+            issues.append(Issue("error", "location_ref", f"{shotlist.location_ref!r} not found in the project folder"))
+        else:
+            room = True
 
     negative = " ".join(templates["negative"].split()).rstrip(".")
     prev_end: float | None = None
@@ -187,6 +196,12 @@ def lint_shotlist(
             issues.append(Issue("warn", w, f"framing {shot.framing!r} not in prompt_templates framings"))
         if shot.on_camera_speech and not shot.line_ids:
             issues.append(Issue("warn", w, "on_camera_speech=true but the shot has no lines to lip-sync"))
+        if shot.on_camera_speech and len(shot.characters) > 1:
+            issues.append(Issue("warn", w, "lip-sync shot shows more than one person: it may move the wrong face — "
+                                           "use a single-face framing (close-up, or over-the-shoulder toward the speaker)"))
+        if not shot.on_camera_speech and SPEECH_WORDS.search(shot.motion_prompt):
+            issues.append(Issue("warn", w, "motion_prompt mentions speaking but on_camera_speech is false: the video "
+                                           "model will move the mouth without matching the voice"))
         if shot.approved_keyframe and not shot.motion_prompt.strip():
             issues.append(Issue("warn", w, "no motion_prompt — clips will use the action text with subtle movement"))
         for field in ("action", "setting", "notes", "motion_prompt"):
@@ -205,7 +220,7 @@ def lint_shotlist(
         if len(shot_styles) > 1:
             issues.append(Issue("error", w, f"characters in one shot use different styles: {', '.join(shot_styles)}"))
         try:
-            prompt = compose_shot_prompt(templates, shot, chars, fallback_style)
+            prompt = compose_shot_prompt(templates, shot, chars, fallback_style, location=room)
         except UserError as e:
             issues.append(Issue("error", w, str(e)))
             continue

@@ -35,10 +35,19 @@ def approved_sheet_paths(paths: Paths, char: Character) -> list[Path]:
     return [character_dir(paths, char.name) / s for s in char.approved_sheets]
 
 
-def reference_sheet(paths: Paths, char: Character) -> Path | None:
-    """The one sheet sent with keyframes: the most recently approved. One per character keeps the model from
-    mixing people up (several unlabelled sheets made glasses and clothes jump between characters)."""
-    return character_dir(paths, char.name) / char.approved_sheets[-1] if char.approved_sheets else None
+def reference_parts(char: Character) -> list[tuple[str, str]]:
+    """What a keyframe gets for this character, in order: its face close-up (face_ref) and its most recently approved
+    sheet (full body). One sheet only: several unlabelled sheets made features jump between characters, and a
+    full-body sheet alone leaves the face too small (the model then invents it, e.g. older)."""
+    parts = [(char.face_ref, "face close-up")] if char.face_ref else []
+    sheets = [s for s in char.approved_sheets if s != char.face_ref]
+    if sheets:
+        parts.append((sheets[-1], "full body"))
+    return parts
+
+
+def reference_images(paths: Paths, char: Character) -> list[Path]:
+    return [character_dir(paths, char.name) / f for f, _ in reference_parts(char)]
 
 
 def _clean(text: str) -> str:
@@ -112,25 +121,33 @@ def characters_text(chars: list[Character]) -> str:
     return prefix + " ".join(parts)
 
 
-def reference_legend(chars: list[Character]) -> str:
-    """Tells the model which reference image is which person. Order matches keyframes.build: the shot's characters
-    that have an approved sheet, one image each."""
-    named = [c.display_name or c.name for c in chars if c.approved_sheets]
-    if not named:
+def reference_legend(chars: list[Character], location: bool = False) -> str:
+    """Tells the model which reference image is which. Order matches keyframes.build: each character's
+    reference_parts, then the room (location_ref) last."""
+    entries = [f"{c.display_name or c.name} ({kind})" for c in chars for _, kind in reference_parts(c)]
+    if location:
+        entries.append("the room")
+    if not entries:
         return ""
-    order = ", ".join(f"image {i} = {n}" for i, n in enumerate(named, 1))
-    return (
-        f"Reference images in order: {order}. Keep each person's face, hairstyle, facial hair, glasses (or no glasses), "
-        "body shape and clothes exactly as in their own reference image; never swap features between people."
-    )
+    order = ", ".join(f"image {i} = {e}" for i, e in enumerate(entries, 1))
+    text = f"Reference images in order: {order}."
+    if len(entries) > (1 if location else 0):
+        text += (" Keep each person's face exactly as in their face close-up (if given), and their hairstyle, facial hair, "
+                 "glasses (or no glasses), body shape and clothes exactly as in their references; never swap features "
+                 "between people.")
+    if location:
+        text += " Keep the same room, furniture, window and light as the room image."
+    return text
 
 
-def compose_shot_prompt(templates: dict, shot: Shot, chars: list[Character], fallback_style: str | None = None) -> str:
+def compose_shot_prompt(
+    templates: dict, shot: Shot, chars: list[Character], fallback_style: str | None = None, location: bool = False,
+) -> str:
     """Style comes from the shot's characters (lint makes sure they agree); shots without people use fallback_style."""
     key = style_key(templates, chars[0]) if chars else fallback_style
     framing = templates.get("framings", {}).get(shot.framing, shot.framing)
     props = f"Props: {', '.join(shot.props)}. " if shot.props else ""
-    legend = reference_legend(chars)
+    legend = reference_legend(chars, location)
     return _clean((
         templates["shot"].format(
             style=style_text(templates, key),
