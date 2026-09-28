@@ -165,3 +165,11 @@ def test_discard_keyframe_api(client, root):
     assert client.post("/api/projects/2026-09-24-demo/keyframes/S01/discard/v2").status_code == 200
     shots = client.get("/api/projects/2026-09-24-demo/keyframes").json()["shots"]
     assert shots[0]["variants"] == ["S01_v1.png"]
+
+
+def test_estimate_never_replaces_voice_timing(client, root):
+    import json
+    f = root / "projects" / "2026-09-24-demo" / "timing.json"
+    f.write_text(json.dumps({"source": "tts", "chars_per_second": 4.5, "total_seconds": 9.0, "lines": []}))
+    assert client.post("/api/projects/2026-09-24-demo/timing").status_code == 409
+    assert json.loads(f.read_text())["source"] == "tts"

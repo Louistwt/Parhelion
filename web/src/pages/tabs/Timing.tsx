@@ -35,7 +35,11 @@ export function TimingTab({ id, target }: { id: string; target: number }) {
               ? "Real durations of the approved voice takes. Re-estimating replaces it with a character-count estimate."
               : "From character count. Build the voice track (Voice tab) to replace this with real timing."}
           </CardDescription>
-          <CardAction><Button disabled={!script || run.isPending} onClick={() => run.mutate()}><TimerIcon /> {timing ? "Re-estimate" : "Estimate timing"}</Button></CardAction>
+          <CardAction>
+            {timing?.source === "tts"
+              ? <span className="text-sm text-muted-foreground">Real timing: rebuild it in the Voice tab</span>
+              : <Button disabled={!script || run.isPending} onClick={() => run.mutate()}><TimerIcon /> {timing ? "Re-estimate" : "Estimate timing"}</Button>}
+          </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {!script && !s.isLoading && <Alert><AlertDescription>Needs script.json first.</AlertDescription></Alert>}

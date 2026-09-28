@@ -304,6 +304,10 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
     @app.post("/api/projects/{p}/timing")
     def post_timing(p: str):
         folder = folder_of(p)
+        current = proj.load_timing(folder)
+        if current is not None and current.source == "tts":
+            raise HTTPException(409, "Timing already comes from the voice track. An estimate would replace it and the "
+                                     "rough cut would lose its voice. Rebuild the voice track instead (Voice tab).")
         t = estimate_timing(proj.load_script(folder), pipeline_cfg(paths.root))
         proj.save(folder / "timing.json", t)
         proj.set_stage(folder, "timing", "estimated")

@@ -129,12 +129,19 @@ def lint(project: str):
 
 
 @app.command()
-def timing(project: str):
+def timing(
+    project: str,
+    force: bool = typer.Option(False, "--force", help="Replace real voice timing with an estimate"),
+):
     """Estimate line timing from character count → timing.json."""
     from .stages.timing import estimate
 
     paths, _ = _ctx()
     folder = proj.resolve(paths, project)
+    current = proj.load_timing(folder)
+    if current is not None and current.source == "tts" and not force:
+        raise typer.BadParameter("timing.json comes from the voice track; an estimate would replace it (the rough cut "
+                                 "would lose its voice). Rebuild with `parhelion voice-track`, or pass --force.")
     script = proj.load_script(folder)
     t = estimate(script, pipeline_cfg(paths.root))
     proj.save(folder / "timing.json", t)
