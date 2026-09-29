@@ -1,0 +1,487 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>
+<title>Parhelion Palettes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: controls on top; mock of the Parhelion app on the left, the palette's tokens + contrast checks on the right.
+   Colours: every token below is overwritten by the selected palette (script), light or dark. */
+:root {
+  --bg: #faf7f5; --surface: #ffffff; --sidebar: #f3eeea; --border: #e7dfd8; --fg: #231a16; --muted: #6e625b;
+  --primary: #c8372d; --primary-hover: #a92b22; --on-primary: #ffffff; --primary-ink: #b3302a; --primary-mark: #c8372d;
+  --success: #276b43; --warning: #845700; --danger: #8e1b3a; --info: #2f6690; --spend: #6a4bc4; --on-spend: #ffffff;
+  --st-brief: #5b6b8c; --st-script: #2e8a83; --st-voice: #8156c9; --st-timing: #3c7fb8; --st-shots: #b0701a;
+  --st-keyframes: #c2477a; --st-storyboard: #6a852b; --st-clips: #1f8fa3; --st-video: #4d57c8;
+  --font-ui: "Geist", "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16110f; --surface: #211a17; --sidebar: #1b1512; --border: #3a302b; --fg: #f4ece7; --muted: #b3a69e;
+    --primary: #f0604f; --primary-hover: #ff7766; --on-primary: #1c0d0a; --primary-ink: #ff8575; --primary-mark: #f0604f;
+    --success: #6ccb8f; --warning: #e3b341; --danger: #f27a9b; --info: #7fb3e0; --spend: #a58bf5; --on-spend: #140c2b;
+    --st-brief: #93a3c4; --st-script: #5cc2b9; --st-voice: #b08cf2; --st-timing: #74aee0; --st-shots: #e6a650;
+    --st-keyframes: #ec7fab; --st-storyboard: #a6c466; --st-clips: #5cc8db; --st-video: #8c93f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16110f; --surface: #211a17; --sidebar: #1b1512; --border: #3a302b; --fg: #f4ece7; --muted: #b3a69e;
+  --primary: #f0604f; --primary-hover: #ff7766; --on-primary: #1c0d0a; --primary-ink: #ff8575; --primary-mark: #f0604f;
+  --success: #6ccb8f; --warning: #e3b341; --danger: #f27a9b; --info: #7fb3e0; --spend: #a58bf5; --on-spend: #140c2b;
+  --st-brief: #93a3c4; --st-script: #5cc2b9; --st-voice: #b08cf2; --st-timing: #74aee0; --st-shots: #e6a650;
+  --st-keyframes: #ec7fab; --st-storyboard: #a6c466; --st-clips: #5cc8db; --st-video: #8c93f0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 14px; line-height: 1.5; }
+:lang(zh-Hant-HK) body, .zh { line-height: 1.65; }
+.page { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 13px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 70ch; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* controls */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 9px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--fg); font: inherit; font-weight: 500; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg) inset; }
+.chip .dots { display: inline-flex; }
+.chip .dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--surface); margin-left: -5px; }
+.chip .dots i:first-child { margin-left: 0; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; padding: 2px; background: var(--surface); }
+.seg button { font: inherit; border: 0; background: transparent; color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--sidebar); color: var(--fg); font-weight: 600; }
+button:focus-visible, .chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* mock app */
+.app { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--bg); display: grid;
+  grid-template-columns: 188px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; min-height: 640px; }
+@media (max-width: 640px) { .app { grid-template-columns: minmax(0, 1fr); } .side { display: none; } }
+.side { background: var(--sidebar); border-right: 1px solid var(--border); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 4px 8px 12px; }
+.nav { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 8px; color: var(--muted); font-weight: 500; }
+.nav svg { width: 16px; height: 16px; flex: none; }
+.nav.active { background: var(--surface); color: var(--fg); box-shadow: 0 1px 0 var(--border); }
+.nav.active svg { color: var(--primary-mark); }
+.main { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.crumb { font-size: 12px; color: var(--muted); }
+.title-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.title-row h3 { font-size: 22px; margin: 0; font-weight: 700; }
+.title-row span { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; color: var(--muted); font-weight: 500; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.active { color: var(--fg); border-bottom-color: var(--primary-mark); }
+.mark { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.mark.todo { border: 2px solid var(--c); background: transparent; }
+.mark.doing { border: 2px solid var(--c); background: linear-gradient(90deg, var(--c) 50%, transparent 50%); }
+.mark.done { background: var(--c); border: 2px solid var(--c); }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.shot { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 480px) { .shot { grid-template-columns: 64px minmax(0, 1fr); } }
+.thumb { aspect-ratio: 9 / 16; max-width: 100%; border-radius: 8px; border: 2px solid var(--success); position: relative; overflow: hidden;
+  background:
+    radial-gradient(60% 30% at 50% 36%, color-mix(in srgb, var(--fg) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--info) 30%, var(--surface)) 0 38%, color-mix(in srgb, var(--warning) 22%, var(--surface)) 38% 60%, color-mix(in srgb, var(--fg) 18%, var(--surface)) 60%); }
+.thumb span { position: absolute; top: 5px; left: 5px; font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--success); color: var(--surface); font-weight: 600; }
+.shot-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.shot-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.shot-head b { font-size: 15px; }
+.time { color: var(--muted); font-size: 12px; }
+.bar { width: 64px; height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; display: inline-block; vertical-align: middle; }
+.bar i { display: block; height: 100%; width: 45%; background: var(--primary); }
+.line { background: color-mix(in srgb, var(--fg) 4%, var(--surface)); border-radius: 8px; padding: 8px 10px; font-size: 15px; }
+.line small { color: var(--muted); font-size: 11px; margin-right: 8px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  color: var(--k); background: color-mix(in srgb, var(--k) 13%, var(--surface)); }
+.badge svg { width: 12px; height: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: inherit; font-weight: 600; font-size: 13px; border-radius: 8px; padding: 7px 13px; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.btn svg { width: 14px; height: 14px; }
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.secondary { background: var(--surface); color: var(--fg); border-color: var(--border); }
+.btn.spend { background: var(--spend); color: var(--on-spend); }
+.btn.spend .cost { background: color-mix(in srgb, var(--on-spend) 18%, transparent); border-radius: 5px; padding: 0 5px; font-family: var(--font-mono); font-size: 12px; }
+.btn.danger { background: var(--surface); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
+.link { color: var(--primary-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+.lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+.dialog { padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--fg) 30%, transparent); }
+.dialog h4 { margin: 0; font-size: 15px; }
+.dialog table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dialog td { padding: 5px 0; border-bottom: 1px solid var(--border); }
+.dialog td:last-child { text-align: right; font-family: var(--font-mono); }
+.dialog .total td { font-weight: 700; border-bottom: 0; }
+.dialog .note { font-size: 12px; color: var(--muted); }
+.toasts { display: flex; flex-direction: column; gap: 8px; }
+.toast { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-left: 3px solid var(--k); }
+.toast svg { width: 16px; height: 16px; color: var(--k); flex: none; margin-top: 2px; }
+.toast div { min-width: 0; }
+.toast b { display: block; font-size: 13px; }
+.toast span { color: var(--muted); font-size: 12px; }
+.empty { padding: 16px; display: flex; gap: 12px; align-items: center; border-style: dashed; }
+.empty svg { width: 22px; height: 22px; color: var(--primary-mark); flex: none; }
+.empty span { color: var(--muted); font-size: 13px; }
+
+.status { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; padding: 6px 14px; font-size: 12px;
+  background: var(--sidebar); border-top: 1px solid var(--border); color: var(--muted); }
+.status .sp { margin-left: auto; }
+.status .meter { width: 70px; height: 5px; border-radius: 99px; background: var(--border); overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+.status .meter i { display: block; height: 100%; background: var(--spend); }
+.status .job { color: var(--fg); }
+.status .job i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--primary-mark); margin-right: 6px; }
+
+/* side panel */
+.panel { display: flex; flex-direction: column; gap: 16px; }
+.panel .card { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.pname { font-size: 18px; font-weight: 700; }
+.pdesc { color: var(--muted); font-size: 13px; }
+.notes { margin: 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.sw { display: flex; flex-direction: column; gap: 4px; font-size: 11px; min-width: 0; }
+.sw i { height: 34px; border-radius: 7px; border: 1px solid var(--border); }
+.sw b { font-size: 12px; font-weight: 600; }
+.sw span { color: var(--muted); font-family: var(--font-mono); }
+.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px 10px; font-size: 12px; }
+.stages div { display: flex; align-items: center; gap: 6px; }
+.contrast { width: 100%; border-collapse: collapse; font-size: 12px; }
+.contrast td { padding: 5px 4px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.contrast td:nth-child(2) { font-family: var(--font-mono); text-align: right; white-space: nowrap; }
+.contrast td:last-child { text-align: right; width: 36px; }
+.sample { display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+.pass { color: var(--success); font-weight: 700; }
+.fail { color: var(--danger); font-weight: 700; }
+.summary { font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .btn, .chip, .seg button { transition: background-color .15s, color .15s; } }
+</style>
+
+<div class="page">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1 id="t-title">Parhelion colour palettes</h1>
+    <p class="lede" id="t-lede">Five warm directions for the Parhelion app, each shown on a mock of the real screens. Pick one (or a mix) and it becomes the base of DESIGN.md. The contrast table checks every text colour against its background (WCAG AA needs 4.5:1 for text, 3:1 for icons and markers).</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Palette options">
+    <div class="chips" id="chips"></div>
+    <div class="seg" role="group" aria-label="Theme">
+      <button type="button" id="th-light" aria-pressed="false">Light</button>
+      <button type="button" id="th-dark" aria-pressed="false">Dark</button>
+    </div>
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" id="lg-en" aria-pressed="true">EN</button>
+      <button type="button" id="lg-zh" aria-pressed="false">繁</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- mock app -->
+    <div class="app" id="app" aria-label="Mock of the Parhelion app">
+      <aside class="side">
+        <div class="brand">
+          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" style="color:var(--primary)"><circle cx="16" cy="16" r="6" fill="currentColor"/><circle cx="16" cy="16" r="10.5" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/><circle cx="4" cy="16" r="2.5" fill="currentColor"/><circle cx="28" cy="16" r="2.5" fill="currentColor"/></svg>
+          Parhelion
+        </div>
+        <div class="nav active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg><span data-t="projects">Projects</span></div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5a5 5 0 0 1 5.5 5.5"/></svg><span data-t="characters">Characters</span></div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg><span data-t="costs">Costs</span></div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span data-t="settings">Settings</span></div>
+      </aside>
+
+      <section class="main">
+        <div>
+          <div class="crumb"><span data-t="projects">Projects</span> / 2026-09-24-demo-a</div>
+          <div class="title-row"><h3>demo-a</h3><span data-t="meta">Mandarin · target 30 s · spent $0.84</span></div>
+        </div>
+        <nav class="tabs" id="tabs" aria-label="Pipeline stages"></nav>
+
+        <article class="card shot">
+          <div class="thumb" aria-hidden="true"><span>v4 ✓</span></div>
+          <div class="shot-body">
+            <div class="shot-head">
+              <b>S01</b><span class="time mono">0.0–3.6 s</span><span class="bar" aria-hidden="true"><i></i></span>
+              <span class="badge" style="--k:var(--success)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg><span data-t="approved">Approved</span></span>
+              <span class="badge" style="--k:var(--warning)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="3"/></svg><span data-t="unsaved">Unsaved</span></span>
+              <span class="badge" style="--k:var(--info)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span data-t="unverified">Unverified</span></span>
+              <span class="badge" style="--k:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><span data-t="error">Too long</span></span>
+            </div>
+            <div class="line"><small>L01 · 小明</small>两台车都卖了，才刚够孩子的医药费……</div>
+            <p style="font-size:13px" data-t="action">Seated across the desk, the heavy-set man slides two car keys toward his friend; worried face, no smile.</p>
+            <div class="row">
+              <button class="btn primary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8"/></svg><span data-t="save">Save S01</span></button>
+              <button class="btn secondary" type="button"><span data-t="undo">Undo changes</span></button>
+              <button class="btn spend" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6z"/></svg><span data-t="generate">Generate</span><span class="cost">$0.03</span></button>
+              <button class="btn danger" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span data-t="discard">Discard</span></button>
+            </div>
+            <p style="font-size:13px"><span data-t="linkpre">Prompt sent to the image model:</span> <span class="link" data-t="linktext">show</span></p>
+          </div>
+        </article>
+
+        <div class="lower">
+          <div class="card dialog" role="group" aria-label="Spend confirmation example">
+            <h4 data-t="confirm">Confirm spend</h4>
+            <table>
+              <tr><td data-t="kf">Keyframes · 5 shots × 1 image</td><td>$0.150</td></tr>
+              <tr><td data-t="sheet">小朱 sheet · 1 image</td><td>$0.030</td></tr>
+              <tr class="total"><td data-t="total">Total</td><td>$0.180</td></tr>
+            </table>
+            <p class="note" data-t="month">This month: $0.84 of $30.00 after this run</p>
+            <div class="row" style="justify-content:flex-end">
+              <button class="btn secondary" type="button" data-t="cancel">Cancel</button>
+              <button class="btn spend" type="button"><span data-t="spendbtn">Spend</span><span class="cost">$0.18</span></button>
+            </div>
+          </div>
+          <div class="toasts">
+            <div class="card toast" style="--k:var(--success)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg><div><b data-t="t1">Saved S01</b><span data-t="t1s">The prompt now uses the new action.</span></div></div>
+            <div class="card toast" style="--k:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><div><b data-t="t2">S06 is 8.4 s</b><span data-t="t2s">Shots must be 3–8 s. Split it or move a line.</span></div></div>
+            <div class="card empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg><span data-t="empty">No keyframes yet. Generate one per shot, then pick the best.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="status">
+        <span><span data-t="monthshort">This month</span> <b class="mono" style="color:var(--fg)">$0.84 / $30</b><span class="meter"><i style="width:3%"></i></span></span>
+        <span class="job"><i></i><span data-t="job">Keyframes 2/5</span></span>
+        <span class="sp">EN | 繁</span>
+        <span data-t="local">Local only</span>
+      </footer>
+    </div>
+
+    <!-- palette details -->
+    <div class="panel">
+      <div class="card">
+        <div class="pname" id="pname"></div>
+        <p class="pdesc" id="pdesc"></p>
+        <ul class="notes" id="pnotes"></ul>
+      </div>
+      <div class="card">
+        <h2 id="h-tokens">Colours</h2>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <div class="card">
+        <h2 id="h-stages">Stage colours (shape = status)</h2>
+        <div class="stages" id="stagelist"></div>
+      </div>
+      <div class="card">
+        <h2 id="h-contrast">Contrast check</h2>
+        <p class="summary" id="csummary"></p>
+        <div style="overflow-x:auto"><table class="contrast" id="contrast"></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var STAGES_LIGHT = { brief: "#5b6b8c", script: "#2e8a83", voice: "#8156c9", timing: "#3c7fb8", shots: "#b0701a", keyframes: "#c2477a", storyboard: "#6a852b", clips: "#1f8fa3", video: "#4d57c8" };
+  var STAGES_DARK = { brief: "#93a3c4", script: "#5cc2b9", voice: "#b08cf2", timing: "#74aee0", shots: "#e6a650", keyframes: "#ec7fab", storyboard: "#a6c466", clips: "#5cc8db", video: "#8c93f0" };
+
+  var PALETTES = [
+    { id: "vermilion", name: { en: "Vermilion 朱紅", zh: "朱紅 Vermilion" },
+      desc: { en: "A warm Chinese red as the main colour on warm stone neutrals. Confident and culturally familiar for HK and mainland users.", zh: "以溫暖的中國紅為主色，配暖石色中性色。醒目，香港及內地用戶都熟悉。" },
+      notes: { en: ["Errors use a deep raspberry-crimson plus a warning icon, so they never read as the main colour.", "Money (paid actions) is violet, clearly separate from red.", "Red is loud: keep it to one primary button per screen."], zh: ["錯誤改用深莓紅加警示圖示，不會與主色混淆。", "付費操作用紫色，與紅色清楚分開。", "紅色較搶眼：每個畫面只放一個主按鈕。"] },
+      light: { bg: "#faf7f5", surface: "#ffffff", sidebar: "#f3eeea", border: "#e7dfd8", fg: "#231a16", muted: "#6e625b", primary: "#c8372d", "primary-hover": "#a92b22", "on-primary": "#ffffff", "primary-ink": "#b3302a", success: "#276b43", warning: "#845700", danger: "#8e1b3a", info: "#2f6690", spend: "#6a4bc4", "on-spend": "#ffffff" },
+      dark: { bg: "#16110f", surface: "#211a17", sidebar: "#1b1512", border: "#3a302b", fg: "#f4ece7", muted: "#b3a69e", primary: "#f0604f", "primary-hover": "#ff7766", "on-primary": "#1c0d0a", "primary-ink": "#ff8575", success: "#6ccb8f", warning: "#e3b341", danger: "#f27a9b", info: "#7fb3e0", spend: "#a58bf5", "on-spend": "#140c2b" } },
+    { id: "sunrise", name: { en: "Sunrise orange", zh: "日出橙" },
+      desc: { en: "A deep orange main colour on warm greys. Energetic like a creative tool, still calm enough for long sessions.", zh: "深橙主色配暖灰。像創作工具一樣有活力，長時間使用也不刺眼。" },
+      notes: { en: ["Warnings move to a mustard ochre so they don't look like the main colour.", "Errors stay a clear red; money is indigo.", "Orange works well with thumbnails, which are mostly skin tones and interiors."], zh: ["警告改用芥末黃，不會像主色。", "錯誤保持清晰紅色；付費用靛藍。", "橙色與畫面縮圖（膚色、室內）很協調。"] },
+      light: { bg: "#faf8f6", surface: "#ffffff", sidebar: "#f4f0ec", border: "#e6e0da", fg: "#1f1b18", muted: "#6b645e", primary: "#c7400c", "primary-hover": "#a93609", "on-primary": "#ffffff", "primary-ink": "#b53a0b", success: "#256a41", warning: "#846400", danger: "#b92525", info: "#1c6da8", spend: "#5b4fc7", "on-spend": "#ffffff" },
+      dark: { bg: "#141210", surface: "#1e1b18", sidebar: "#191613", border: "#37312c", fg: "#f3eee9", muted: "#aba39b", primary: "#ff7a3d", "primary-hover": "#ff9160", "on-primary": "#1f0d02", "primary-ink": "#ff9560", success: "#5fc486", warning: "#d9b44a", danger: "#ff6b6b", info: "#6fb0e6", spend: "#9d92ff", "on-spend": "#140f33" } },
+    { id: "gold", name: { en: "Parhelion gold", zh: "幻日金" },
+      desc: { en: "Amber-yellow like the sun halo in the name, balanced with cool navy neutrals. Buttons use dark text for readability.", zh: "取名自幻日的琥珀金，配冷調海軍藍中性色。按鈕用深色文字，確保易讀。" },
+      notes: { en: ["Yellow can't carry white text, so buttons have navy text and links use a darker gold.", "Warnings become orange; money is violet.", "The most distinctive option; navy keeps it professional."], zh: ["黃色上不能用白字，按鈕改用海軍藍字，連結用較深的金色。", "警告改為橙色；付費用紫色。", "最有辨識度；海軍藍令整體保持專業。"] },
+      light: { bg: "#f6f7fa", surface: "#ffffff", sidebar: "#eef1f6", border: "#dde2ea", fg: "#13203a", muted: "#5a6478", primary: "#f2b01e", "primary-hover": "#dda00f", "on-primary": "#1a1f2e", "primary-ink": "#855700", "primary-mark": "#b07a00", success: "#1b6b43", warning: "#a93a0a", danger: "#c0262d", info: "#2563a6", spend: "#7c3aed", "on-spend": "#ffffff" },
+      dark: { bg: "#0e1320", surface: "#161c2c", sidebar: "#121827", border: "#2a3247", fg: "#eef1f7", muted: "#a2abbd", primary: "#ffc53d", "primary-hover": "#ffd36b", "on-primary": "#1a1405", "primary-ink": "#ffd36b", success: "#5cc98e", warning: "#ff8a4c", danger: "#ff6b6b", info: "#7db2f0", spend: "#b79cff", "on-spend": "#1a0f33" } },
+    { id: "coral", name: { en: "Coral studio", zh: "珊瑚工作室" },
+      desc: { en: "A bright coral on ink-dark surfaces, closest to a video editor. Dark mode is the hero; light mode stays clean.", zh: "亮珊瑚色配墨黑表面，最接近影片剪輯軟件。以深色模式為主，淺色模式簡潔。" },
+      notes: { en: ["Bright coral needs dark button text; links use a deeper coral.", "Money is teal, which pairs well with coral.", "Errors are crimson-pink, separate from coral."], zh: ["亮珊瑚色按鈕要用深色字；連結用較深的珊瑚色。", "付費用青綠色，與珊瑚色很搭。", "錯誤用深粉紅，與珊瑚色分開。"] },
+      light: { bg: "#f5f5f7", surface: "#ffffff", sidebar: "#ededf1", border: "#dcdce3", fg: "#16161d", muted: "#62626f", primary: "#ff6b57", "primary-hover": "#f25540", "on-primary": "#1b0e0c", "primary-ink": "#c23b28", "primary-mark": "#e5533e", success: "#1a6a45", warning: "#7f5800", danger: "#b4233c", info: "#3f5fd9", spend: "#0e7c7b", "on-spend": "#ffffff" },
+      dark: { bg: "#0d0d12", surface: "#17171f", sidebar: "#111118", border: "#2a2a36", fg: "#f2f2f7", muted: "#a0a0b2", primary: "#ff6b57", "primary-hover": "#ff8472", "on-primary": "#1b0e0c", "primary-ink": "#ff8c7a", success: "#4fd18b", warning: "#f2c14e", danger: "#ff5c7a", info: "#7c95ff", spend: "#2ec4c4", "on-spend": "#06201f" } },
+    { id: "terracotta", name: { en: "Terracotta calm", zh: "赤陶沉穩" },
+      desc: { en: "A muted burnt orange on soft sand-grey surfaces. The quietest option, closest to a finance dashboard.", zh: "低調焦橙色配柔和沙灰色表面。最沉穩的選項，接近財務儀表板。" },
+      notes: { en: ["Very easy on the eyes; the main colour rarely competes with thumbnails.", "Less energetic for a creative product.", "Money is a soft indigo; warnings are olive-ochre."], zh: ["非常護眼；主色很少與縮圖爭奪注意力。", "作為創作產品稍欠活力。", "付費用柔和靛藍；警告用橄欖黃。"] },
+      light: { bg: "#f7f5f2", surface: "#ffffff", sidebar: "#f0ece7", border: "#e3ddd5", fg: "#2a211c", muted: "#6f645b", primary: "#b4532a", "primary-hover": "#97441f", "on-primary": "#ffffff", "primary-ink": "#a14a25", success: "#336a49", warning: "#806212", danger: "#b3261e", info: "#3a6b8c", spend: "#5e55b8", "on-spend": "#ffffff" },
+      dark: { bg: "#171412", surface: "#211d1a", sidebar: "#1b1816", border: "#3a332d", fg: "#f2ece6", muted: "#b0a59b", primary: "#e38a5e", "primary-hover": "#eea07a", "on-primary": "#1e0f07", "primary-ink": "#eea07a", success: "#74c394", warning: "#d9b55a", danger: "#f2776b", info: "#86b6d9", spend: "#a49cf0", "on-spend": "#17123a" } }
+  ];
+
+  var TEXT = {
+    en: { title: "Parhelion colour palettes", lede: "Five warm directions for the Parhelion app, each shown on a mock of the real screens. Pick one (or a mix) and it becomes the base of DESIGN.md. The contrast table checks every text colour against its background (WCAG AA needs 4.5:1 for text, 3:1 for icons and markers).",
+      light: "Light", dark: "Dark", tokens: "Colours", stagesH: "Stage colours (shape = status)", contrastH: "Contrast check",
+      projects: "Projects", characters: "Characters", costs: "Costs", settings: "Settings", meta: "Mandarin · target 30 s · spent $0.84",
+      approved: "Approved", unsaved: "Unsaved", unverified: "Unverified", error: "Too long",
+      action: "Seated across the desk, the heavy-set man slides two car keys toward his friend; worried face, no smile.",
+      save: "Save S01", undo: "Undo changes", generate: "Generate", discard: "Discard", linkpre: "Prompt sent to the image model:", linktext: "show",
+      confirm: "Confirm spend", kf: "Keyframes · 5 shots × 1 image", sheet: "小朱 sheet · 1 image", total: "Total", month: "This month: $0.84 of $30.00 after this run",
+      cancel: "Cancel", spendbtn: "Spend", t1: "Saved S01", t1s: "The prompt now uses the new action.", t2: "S06 is 8.4 s", t2s: "Shots must be 3–8 s. Split it or move a line.",
+      empty: "No keyframes yet. Generate one per shot, then pick the best.", monthshort: "This month", job: "Keyframes 2/5", local: "Local only",
+      stageNames: { brief: "Brief", script: "Script", voice: "Voice", timing: "Timing", shots: "Shots", keyframes: "Keyframes", storyboard: "Storyboard", clips: "Clips", video: "Video" },
+      statusNames: { todo: "to do", doing: "in progress", done: "done" },
+      sw: { bg: "Background", surface: "Card", sidebar: "Sidebar", border: "Border", fg: "Text", muted: "Secondary text", primary: "Main colour", "on-primary": "Text on main", success: "Success", warning: "Warning", danger: "Error", info: "Info", spend: "Money", "on-spend": "Text on money" },
+      pairs: { a: "Text on background", b: "Secondary text on card", c: "Button text on main colour", d: "Links on card", e: "Success badge", f: "Warning badge", g: "Error badge", h: "Info badge", i: "Money button text", j: "Main colour as a marker (3:1)", k: "Stage markers on card (3:1)" },
+      summary: function (n, t) { return n === t ? "All " + t + " checks pass." : (t - n) + " of " + t + " checks fail — see ✗ below."; } },
+    zh: { title: "Parhelion 配色方案", lede: "為 Parhelion 應用程式準備的五個暖色方向，每個都套用在真實畫面的模擬上。選一個（或混合），它就會成為 DESIGN.md 的基礎。對比度表會檢查每種文字顏色與背景的對比（WCAG AA：文字需 4.5:1，圖示和標記需 3:1）。",
+      light: "淺色", dark: "深色", tokens: "顏色", stagesH: "階段顏色（形狀＝狀態）", contrastH: "對比度檢查",
+      projects: "項目", characters: "角色", costs: "費用", settings: "設定", meta: "普通話 · 目標 30 秒 · 已花 $0.84",
+      approved: "已批准", unsaved: "未儲存", unverified: "未核實", error: "太長",
+      action: "兩人隔着辦公桌坐，身形較胖的男人把兩條車匙推向朋友；神情憂慮，沒有笑容。",
+      save: "儲存 S01", undo: "還原修改", generate: "生成", discard: "棄用", linkpre: "發送給圖像模型的提示：", linktext: "顯示",
+      confirm: "確認付費", kf: "關鍵畫面 · 5 個鏡頭 × 1 張", sheet: "小朱 設定圖 · 1 張", total: "合計", month: "今個月：執行後 $0.84 / $30.00",
+      cancel: "取消", spendbtn: "付費", t1: "已儲存 S01", t1s: "提示已改用新的動作描述。", t2: "S06 長 8.4 秒", t2s: "鏡頭需為 3–8 秒。請拆分或移走一句對白。",
+      empty: "未有關鍵畫面。每個鏡頭生成一張，再揀最好的。", monthshort: "今個月", job: "關鍵畫面 2/5", local: "只限本機",
+      stageNames: { brief: "簡報", script: "劇本", voice: "配音", timing: "時間", shots: "鏡頭", keyframes: "關鍵畫面", storyboard: "分鏡", clips: "片段", video: "影片" },
+      statusNames: { todo: "未開始", doing: "進行中", done: "完成" },
+      sw: { bg: "背景", surface: "卡片", sidebar: "側欄", border: "邊框", fg: "文字", muted: "次要文字", primary: "主色", "on-primary": "主色上的文字", success: "成功", warning: "警告", danger: "錯誤", info: "資訊", spend: "付費", "on-spend": "付費上的文字" },
+      pairs: { a: "背景上的文字", b: "卡片上的次要文字", c: "主色按鈕文字", d: "卡片上的連結", e: "成功標籤", f: "警告標籤", g: "錯誤標籤", h: "資訊標籤", i: "付費按鈕文字", j: "主色作為標記（3:1）", k: "卡片上的階段標記（3:1）" },
+      summary: function (n, t) { return n === t ? "全部 " + t + " 項檢查通過。" : t + " 項中有 " + (t - n) + " 項不合格，見下方 ✗。"; } }
+  };
+  var STAGE_ORDER = ["brief", "script", "voice", "timing", "shots", "keyframes", "storyboard", "clips", "video"];
+  var STAGE_STATUS = { brief: "done", script: "done", voice: "done", timing: "done", shots: "done", keyframes: "doing", storyboard: "todo", clips: "todo", video: "todo" };
+
+  var state = { palette: 0, theme: null, lang: "en" };
+  try { var saved = JSON.parse(localStorage.getItem("parhelion-palettes") || "{}"); if (saved.palette >= 0 && saved.palette < PALETTES.length) state.palette = saved.palette; if (saved.lang) state.lang = saved.lang; } catch (e) {}
+
+  function effectiveTheme() {
+    var attr = document.documentElement.getAttribute("data-theme");
+    if (attr === "dark" || attr === "light") return attr;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  // WCAG helpers
+  function hexToRgb(h) { h = h.replace("#", ""); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
+  function lin(c) { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function lum(rgb) { return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]); }
+  function ratio(a, b) { var la = lum(a), lb = lum(b); var hi = Math.max(la, lb), lo = Math.min(la, lb); return (hi + 0.05) / (lo + 0.05); }
+  function mix(fg, bg, t) { return fg.map(function (v, i) { return Math.round(v * t + bg[i] * (1 - t)); }); }
+  function toHex(rgb) { return "#" + rgb.map(function (v) { return v.toString(16).padStart(2, "0"); }).join(""); }
+
+  var root = document.documentElement;
+  function apply() {
+    var p = PALETTES[state.palette];
+    var theme = state.theme || effectiveTheme();
+    var tok = p[theme];
+    var stages = theme === "dark" ? STAGES_DARK : STAGES_LIGHT;
+    Object.keys(tok).forEach(function (k) { root.style.setProperty("--" + k, tok[k]); });
+    root.style.setProperty("--primary-mark", tok["primary-mark"] || tok.primary);
+    Object.keys(stages).forEach(function (k) { root.style.setProperty("--st-" + k, stages[k]); });
+    root.style.colorScheme = theme;
+    render(p, tok, stages, theme);
+  }
+
+  function render(p, tok, stages, theme) {
+    var T = TEXT[state.lang];
+    root.lang = state.lang === "zh" ? "zh-Hant-HK" : "en";
+    document.getElementById("t-title").textContent = T.title;
+    document.getElementById("t-lede").textContent = T.lede;
+    document.getElementById("th-light").textContent = T.light;
+    document.getElementById("th-dark").textContent = T.dark;
+    document.getElementById("h-tokens").textContent = T.tokens;
+    document.getElementById("h-stages").textContent = T.stagesH;
+    document.getElementById("h-contrast").textContent = T.contrastH;
+    document.querySelectorAll("[data-t]").forEach(function (el) { var v = T[el.getAttribute("data-t")]; if (typeof v === "string") el.textContent = v; });
+    document.getElementById("th-light").setAttribute("aria-pressed", String(theme === "light"));
+    document.getElementById("th-dark").setAttribute("aria-pressed", String(theme === "dark"));
+    document.getElementById("lg-en").setAttribute("aria-pressed", String(state.lang === "en"));
+    document.getElementById("lg-zh").setAttribute("aria-pressed", String(state.lang === "zh"));
+
+    // chips
+    var chips = document.getElementById("chips");
+    chips.innerHTML = "";
+    PALETTES.forEach(function (pal, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.id = "pal-" + pal.id;
+      b.setAttribute("aria-pressed", String(i === state.palette));
+      var t = pal[theme];
+      b.innerHTML = '<span class="dots"><i style="background:' + t.primary + '"></i><i style="background:' + t.spend + '"></i><i style="background:' + t.fg + '"></i></span>';
+      b.appendChild(document.createTextNode((i + 1) + ". " + pal.name[state.lang]));
+      b.addEventListener("click", function () { state.palette = i; save(); apply(); });
+      chips.appendChild(b);
+    });
+
+    // tabs
+    var tabs = document.getElementById("tabs");
+    tabs.innerHTML = "";
+    STAGE_ORDER.forEach(function (s) {
+      var d = document.createElement("span");
+      d.className = "tab" + (s === "shots" ? " active" : "");
+      d.innerHTML = '<span class="mark ' + STAGE_STATUS[s] + '" style="--c:var(--st-' + s + ')" title="' + T.statusNames[STAGE_STATUS[s]] + '"></span>';
+      d.appendChild(document.createTextNode(T.stageNames[s]));
+      tabs.appendChild(d);
+    });
+
+    // details
+    document.getElementById("pname").textContent = (state.palette + 1) + ". " + p.name[state.lang];
+    document.getElementById("pdesc").textContent = p.desc[state.lang];
+    var notes = document.getElementById("pnotes"); notes.innerHTML = "";
+    p.notes[state.lang].forEach(function (n) { var li = document.createElement("li"); li.textContent = n; notes.appendChild(li); });
+
+    var sw = document.getElementById("swatches"); sw.innerHTML = "";
+    ["bg", "surface", "sidebar", "border", "fg", "muted", "primary", "on-primary", "success", "warning", "danger", "info", "spend", "on-spend"].forEach(function (k) {
+      var d = document.createElement("div"); d.className = "sw";
+      d.innerHTML = '<i style="background:' + tok[k] + '"></i><b></b><span>' + tok[k] + '</span>';
+      d.querySelector("b").textContent = T.sw[k];
+      sw.appendChild(d);
+    });
+
+    var sl = document.getElementById("stagelist"); sl.innerHTML = "";
+    STAGE_ORDER.forEach(function (s) {
+      var d = document.createElement("div");
+      d.innerHTML = '<span class="mark ' + STAGE_STATUS[s] + '" style="--c:' + stages[s] + '"></span>';
+      d.appendChild(document.createTextNode(T.stageNames[s]));
+      sl.appendChild(d);
+    });
+
+    // contrast
+    var R = function (k) { return hexToRgb(tok[k]); };
+    var surf = R("surface");
+    var badge = function (k) { return mix(R(k), surf, 0.13); };
+    var worstStage = STAGE_ORDER.reduce(function (m, s) { var r = ratio(hexToRgb(stages[s]), surf); return r < m.r ? { r: r, s: s } : m; }, { r: 99, s: "" });
+    var rows = [
+      { k: "a", fg: tok.fg, bg: tok.bg, r: ratio(R("fg"), R("bg")), min: 4.5 },
+      { k: "b", fg: tok.muted, bg: tok.surface, r: ratio(R("muted"), surf), min: 4.5 },
+      { k: "c", fg: tok["on-primary"], bg: tok.primary, r: ratio(R("on-primary"), R("primary")), min: 4.5 },
+      { k: "d", fg: tok["primary-ink"], bg: tok.surface, r: ratio(R("primary-ink"), surf), min: 4.5 },
+      { k: "e", fg: tok.success, bg: toHex(badge("success")), r: ratio(R("success"), badge("success")), min: 4.5 },
+      { k: "f", fg: tok.warning, bg: toHex(badge("warning")), r: ratio(R("warning"), badge("warning")), min: 4.5 },
+      { k: "g", fg: tok.danger, bg: toHex(badge("danger")), r: ratio(R("danger"), badge("danger")), min: 4.5 },
+      { k: "h", fg: tok.info, bg: toHex(badge("info")), r: ratio(R("info"), badge("info")), min: 4.5 },
+      { k: "i", fg: tok["on-spend"], bg: tok.spend, r: ratio(R("on-spend"), R("spend")), min: 4.5 },
+      { k: "j", fg: tok["primary-mark"] || tok.primary, bg: tok.surface, r: ratio(hexToRgb(tok["primary-mark"] || tok.primary), surf), min: 3 },
+      { k: "k", fg: stages[worstStage.s], bg: tok.surface, r: worstStage.r, min: 3 }
+    ];
+    var table = document.getElementById("contrast"); table.innerHTML = "";
+    var passed = 0;
+    rows.forEach(function (row) {
+      var ok = row.r >= row.min; if (ok) passed++;
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td><span class="sample" style="color:' + row.fg + ';background:' + row.bg + '">Aa 字</span> <span></span></td><td>' + row.r.toFixed(2) + ':1</td><td class="' + (ok ? "pass" : "fail") + '">' + (ok ? "✓" : "✗") + "</td>";
+      tr.querySelector("td span:nth-child(2)").textContent = T.pairs[row.k];
+      table.appendChild(tr);
+    });
+    document.getElementById("csummary").textContent = T.summary(passed, rows.length);
+    window.__contrast = { palette: p.id, theme: theme, passed: passed, total: rows.length, rows: rows.map(function (r) { return r.k + "=" + r.r.toFixed(2); }) };
+  }
+
+  function save() { try { localStorage.setItem("parhelion-palettes", JSON.stringify({ palette: state.palette, lang: state.lang })); } catch (e) {} }
+
+  document.getElementById("th-light").addEventListener("click", function () { state.theme = "light"; root.setAttribute("data-theme", "light"); apply(); });
+  document.getElementById("th-dark").addEventListener("click", function () { state.theme = "dark"; root.setAttribute("data-theme", "dark"); apply(); });
+  document.getElementById("lg-en").addEventListener("click", function () { state.lang = "en"; save(); apply(); });
+  document.getElementById("lg-zh").addEventListener("click", function () { state.lang = "zh"; save(); apply(); });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", function () { if (!state.theme) apply(); }); }
+  new MutationObserver(function () { var a = root.getAttribute("data-theme"); if (a !== (state.theme || null) && (a === "dark" || a === "light")) { state.theme = a; apply(); } }).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  window.__setPalette = function (i, theme) { state.palette = i; if (theme) { state.theme = theme; root.setAttribute("data-theme", theme); } apply(); };
+  apply();
+})();
+</script>
+</body></html>
