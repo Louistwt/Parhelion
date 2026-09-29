@@ -1,15 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SaveIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "../../api";
-import { ErrorBox, Kbd, Loading } from "../../components/common";
+import { ErrorBox, Loading } from "../../components/common";
 
 export function BriefTab({ id }: { id: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["brief", id], queryFn: () => api.get<{ text: string }>(`/api/projects/${id}/brief`) });
   const [text, setText] = useState("");
@@ -17,7 +19,7 @@ export function BriefTab({ id }: { id: string }) {
   const save = useMutation({
     mutationFn: () => api.put(`/api/projects/${id}/brief`, { text }),
     onSuccess: () => {
-      toast.success("Brief saved (previous version kept in .history/)");
+      toast.success(t("brief.saved"));
       qc.invalidateQueries({ queryKey: ["brief", id] });
       qc.invalidateQueries({ queryKey: ["project", id] });
     },
@@ -27,10 +29,10 @@ export function BriefTab({ id }: { id: string }) {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
       <Card>
         <CardHeader>
-          <CardTitle>brief.md</CardTitle>
+          <CardTitle>{"brief.md"}</CardTitle>
           <CardAction className="flex items-center gap-2">
-            {dirty && <Badge variant="warning">unsaved</Badge>}
-            <Button disabled={!dirty || save.isPending} onClick={() => save.mutate()}><SaveIcon /> Save</Button>
+            {dirty && <Badge variant="warning">{t("common.unsaved")}</Badge>}
+            <Button disabled={!dirty || save.isPending} onClick={() => save.mutate()}><SaveIcon /> {t("common.actions.save")}</Button>
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -46,17 +48,17 @@ export function BriefTab({ id }: { id: string }) {
         </CardContent>
       </Card>
       <Card className="self-start">
-        <CardHeader><CardTitle>What goes here</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("brief.guide.title")}</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <p>The brief is written by humans. Claude reads it to propose an outline but never changes it.</p>
+          <p>{t("brief.guide.intro")}</p>
           <ul className="list-disc pl-5">
-            <li>Format and tone (humour optional)</li>
-            <li>Characters (from the Characters page)</li>
-            <li>The key point from your partner, with sources</li>
-            <li>The beats you want, in order</li>
-            <li>Anything to avoid</li>
+            <li>{t("brief.guide.format")}</li>
+            <li>{t("brief.guide.characters")}</li>
+            <li>{t("brief.guide.keyPoint")}</li>
+            <li>{t("brief.guide.beats")}</li>
+            <li>{t("brief.guide.avoid")}</li>
           </ul>
-          <p>Each save keeps the previous version in <code>.history/</code>. <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd> saves.</p>
+          <p><Trans i18nKey="brief.guide.history" components={{ code: <code />, kbd: <kbd className="kbd" /> }} /></p>
         </CardContent>
       </Card>
     </div>

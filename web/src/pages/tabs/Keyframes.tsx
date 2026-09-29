@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SparklesIcon } from "lucide-react";
+import { ListVideoIcon, SparklesIcon } from "lucide-react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,17 @@ import { SpendModal } from "../../components/SpendModal";
 import { Thumb, ThumbEmpty, ThumbGrid } from "../../components/Thumb";
 import { useSettings } from "../../format";
 import { useScopeJob } from "../../jobs";
+import enShots from "../../locales/en/shots";
 
 type KfResp = { shots: KeyframeShot[] | null; folder: string };
+type TFn = ReturnType<typeof useTranslation>["t"];
+/** Framing keys come from library/prompt_templates.yaml; unknown keys are shown as-is. */
+const framingLabel = (t: TFn, f: string) => (f in enShots.framings ? t(`shots.framings.${f as keyof typeof enShots.framings}`) : f);
 
 function ShotRow({ id, shot, n, model, onGenerate }: {
   id: string; shot: KeyframeShot; n: number; model: string; onGenerate: (req: RunRequest) => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [open, setOpen] = useState<number | null>(null);
   const approve = useMutation({
@@ -30,14 +36,14 @@ function ShotRow({ id, shot, n, model, onGenerate }: {
       return api.post(`/api/projects/${id}/keyframes/${shot.id}/approve/v${v}`);
     },
     onSuccess: (_, name) => {
-      toast.success(`${shot.id}: approved ${name}`);
+      toast.success(t("keyframes.approvedToast", { id: shot.id, name }));
       qc.invalidateQueries({ queryKey: ["keyframes", id] });
       qc.invalidateQueries({ queryKey: ["project", id] });
     },
   });
   const discard = useMutation({
     mutationFn: (name: string) => api.post(`/api/projects/${id}/keyframes/${shot.id}/discard/v${name.match(/_v(\d+)\./)?.[1]}`),
-    onSuccess: (_, name) => { toast.success(`${name} discarded`); qc.invalidateQueries({ queryKey: ["keyframes", id] }); },
+    onSuccess: (_, name) => { toast.success(t("keyframes.discardedToast", { name })); qc.invalidateQueries({ queryKey: ["keyframes", id] }); },
     onError: (e) => toast.error(String(e)),
   });
   const images = shot.variants.map((v) => ({ name: v, src: fileUrl("projects", id, "keyframes", v) }));
@@ -47,15 +53,15 @@ function ShotRow({ id, shot, n, model, onGenerate }: {
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold">{shot.id}</span>
-            <span className="text-xs text-muted-foreground">{shot.start.toFixed(1)}–{shot.end.toFixed(1)}s</span>
-            {shot.approved ? <Badge variant="success">approved</Badge> : <Badge variant="secondary">pick one</Badge>}
+            <span className="text-xs text-muted-foreground">{t("common.seconds", { n: `${shot.start.toFixed(1)}–${shot.end.toFixed(1)}` })}</span>
+            {shot.approved ? <Badge variant="success">{t("common.actions.approved")}</Badge> : <Badge variant="warning">{t("keyframes.pickOne")}</Badge>}
           </div>
-          <div className="text-[15px]">{shot.text || <span className="text-muted-foreground">(no line)</span>}</div>
-          <div className="text-xs text-muted-foreground">{shot.framing}{shot.characters.length ? ` · ${shot.characters.join(", ")}` : ""}</div>
+          <div className="text-[15px]">{shot.text || <span className="text-muted-foreground">{t("keyframes.noLine")}</span>}</div>
+          <div className="text-xs text-muted-foreground">{framingLabel(t, shot.framing)}{shot.characters.length ? ` · ${shot.characters.join(", ")}` : ""}</div>
           <div className="text-sm">{shot.action}</div>
           <div>
-            <Button variant="outline" size="sm" onClick={() => onGenerate({ kind: "keyframes", project: id, shot_ids: [shot.id], n, model: model || undefined })}>
-              <SparklesIcon /> Generate {n} {shot.variants.length ? "more" : "variants"}
+            <Button variant="spend" size="sm" onClick={() => onGenerate({ kind: "keyframes", project: id, shot_ids: [shot.id], n, model: model || undefined })}>
+              <SparklesIcon /> {shot.variants.length ? t("keyframes.generateMore", { count: n }) : t("keyframes.generateVariants", { count: n })}
             </Button>
           </div>
           <ErrorBox error={approve.error} />
@@ -64,7 +70,7 @@ function ShotRow({ id, shot, n, model, onGenerate }: {
           {images.map((im, i) => (
             <Thumb key={im.name} src={im.src} label={im.name.replace(`${shot.id}_`, "").replace(/\.\w+$/, "")} approved={shot.approved === im.name} onClick={() => setOpen(i)} />
           ))}
-          {images.length === 0 && <ThumbEmpty label="no keyframes yet" />}
+          {images.length === 0 && <ThumbEmpty label={t("keyframes.noKeyframes")} />}
         </ThumbGrid>
       </CardContent>
       {open !== null && (
@@ -83,6 +89,7 @@ function ShotRow({ id, shot, n, model, onGenerate }: {
 }
 
 export function KeyframesTab({ id }: { id: string }) {
+  const { t } = useTranslation();
   const settings = useSettings();
   const q = useQuery({ queryKey: ["keyframes", id], queryFn: () => api.get<KfResp>(`/api/projects/${id}/keyframes`) });
   const [model, setModel] = useState("");
@@ -94,7 +101,7 @@ export function KeyframesTab({ id }: { id: string }) {
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   const shots = q.data?.shots;
-  if (!shots) return <Empty title="No shot list yet">Build the shot list first (Shots tab).</Empty>;
+  if (!shots) return <Empty title={t("keyframes.empty.title")} icon={ListVideoIcon}>{t("keyframes.empty.body")}</Empty>;
   const missing = shots.filter((s) => !s.approved).length;
 
   return (
@@ -102,19 +109,19 @@ export function KeyframesTab({ id }: { id: string }) {
       <Card>
         <CardContent className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="font-semibold">{shots.length - missing}/{shots.length} shots approved</div>
+            <div className="font-semibold">{t("keyframes.approvedCount", { done: shots.length - missing, total: shots.length })}</div>
             <div className="text-sm text-muted-foreground">
-              Click a thumbnail to compare, approve (<Kbd>Enter</Kbd>) or discard. Only approved keyframes go on the storyboard.
+              <Trans i18nKey="keyframes.help" components={{ kbd: <Kbd>{null}</Kbd> }} />
             </div>
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <ModelSelect value={model} onChange={setModel} />
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="variants" className="text-xs text-muted-foreground">Variants</Label>
+              <Label htmlFor="variants" className="text-xs text-muted-foreground">{t("keyframes.variants")}</Label>
               <Input id="variants" type="number" min={1} max={4} value={variants} onChange={(e) => setN(Number(e.target.value))} className="w-16" />
             </div>
-            <Button disabled={!missing || !!jobId} onClick={() => setPending({ kind: "keyframes", project: id, n: variants, model: model || undefined })}>
-              <SparklesIcon /> Generate all missing ({missing})
+            <Button variant="spend" disabled={!missing || !!jobId} onClick={() => setPending({ kind: "keyframes", project: id, n: variants, model: model || undefined })}>
+              <SparklesIcon /> {t("keyframes.generateAll", { count: missing })}
             </Button>
           </div>
         </CardContent>

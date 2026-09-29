@@ -1,0 +1,31 @@
+const voice = {
+  empty: { title: "No script.json yet", body: "Voice is generated line by line from the agreed script." },
+  title: "Voice — {{approved}}/{{total}} lines approved",
+  description: "One take per line (≈ {{price}} per character). Approve the best take, then build the voice track: it gives the video its real timing.",
+  model: "Voice model",
+  generateAll: "Generate all lines",
+  missingVoice: "Some speakers have no voice yet — pick one on the <link>Characters</link> page (narrator voice: library/voices.yaml).",
+  approveNewest: "Approve newest takes",
+  approveNewestDone: "Approved the newest take of every unapproved line",
+  buildTrack: "Build voice track + timing",
+  building: "Building…",
+  trackBuilt: "Voice track {{file}}: {{seconds}}s",
+  retime: "Retime shots",
+  retimed: "Shots moved onto the real timing",
+  track: "Voice track",
+  trackLength: "{{seconds}}s (target {{target}}s)",
+  overTarget: "over target",
+  withinTarget: "within target",
+  retimeOk: "All shots are 3–8 s on the real timing.",
+  retimeIssues: "{{issues}} — adjust in the Shots tab (or ask Claude to split/merge shots).",
+  line: {
+    pickTake: "pick a take",
+    speed: "speed {{speed}}",
+    newTake: "New take",
+    noTakes: "No takes yet.",
+    approvedToast: "{{id}}: approved {{file}}",
+    duration: "{{seconds}}s",
+  },
+};
+
+export default voice;

@@ -7,7 +7,19 @@
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+    --font-sans: 'Geist Variable', "PingFang HK", "Microsoft JhengHei", "Noto Sans CJK TC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-ink: var(--primary-ink);
+    --color-primary-mark: var(--primary-mark);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-spend: var(--spend);
+    --color-spend-hover: var(--spend-hover);
+    --color-spend-foreground: var(--spend-foreground);
+    --color-status-todo: var(--status-todo);
+    --color-status-progress: var(--status-progress);
+    --color-status-done: var(--status-done);
+    --color-status-attention: var(--status-attention);
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
     --color-warning: var(--warning);
@@ -52,81 +64,104 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Parhelion gold — see DESIGN.md. Gold never carries white text; gold as text uses --primary-ink,
+   gold as thin marks uses --primary-mark; violet (--spend) is only for paid actions. */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: #2a78d6; /* Parhelion brand blue (validated chart series colour) */
-    --primary-foreground: #ffffff;
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: #2a78d6;
-    --success: #1b7f3b;
+    --background: #f6f7fa;
+    --foreground: #13203a;
+    --card: #ffffff;
+    --card-foreground: #13203a;
+    --popover: #ffffff;
+    --popover-foreground: #13203a;
+    --primary: #f2b01e;
+    --primary-hover: #dda00f;
+    --primary-foreground: #1a1f2e;
+    --primary-ink: #855700;
+    --primary-mark: #b07a00;
+    --secondary: #eef1f6;
+    --secondary-foreground: #13203a;
+    --muted: #eef1f6;
+    --muted-foreground: #5a6478;
+    --accent: #eef1f6;
+    --accent-foreground: #13203a;
+    --destructive: #c0262d;
+    --border: #dde2ea;
+    --input: #d3d9e3;
+    --ring: #b07a00;
+    --success: #1b6b43;
     --success-foreground: #ffffff;
-    --warning: #a86500;
+    --warning: #a93a0a;
     --warning-foreground: #ffffff;
-    --chart-1: #2a78d6;
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --info: #2563a6;
+    --info-foreground: #ffffff;
+    --spend: #7c3aed;
+    --spend-hover: #6d28d9;
+    --spend-foreground: #ffffff;
+    --status-todo: #8a93a6;
+    --status-progress: var(--primary-mark);
+    --status-done: var(--success);
+    --status-attention: var(--destructive);
+    --chart-1: #b07a00;
+    --chart-2: #2563a6;
+    --chart-3: #7c3aed;
+    --chart-4: #1b6b43;
+    --chart-5: #5a6478;
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: #2a78d6;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: #eef1f6;
+    --sidebar-foreground: #13203a;
+    --sidebar-primary: #f2b01e;
+    --sidebar-primary-foreground: #1a1f2e;
+    --sidebar-accent: #ffffff;
+    --sidebar-accent-foreground: #13203a;
+    --sidebar-border: #dde2ea;
+    --sidebar-ring: #b07a00;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: #3987e5;
-    --primary-foreground: #ffffff;
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: #3987e5;
-    --success: #5cc27a;
-    --success-foreground: #0b1f10;
-    --warning: #e0a040;
-    --warning-foreground: #2a1a00;
-    --chart-1: #3987e5;
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: #3987e5;
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: #0e1320;
+    --foreground: #eef1f7;
+    --card: #161c2c;
+    --card-foreground: #eef1f7;
+    --popover: #161c2c;
+    --popover-foreground: #eef1f7;
+    --primary: #ffc53d;
+    --primary-hover: #ffd36b;
+    --primary-foreground: #1a1405;
+    --primary-ink: #ffd36b;
+    --primary-mark: #ffc53d;
+    --secondary: #1e2638;
+    --secondary-foreground: #eef1f7;
+    --muted: #1e2638;
+    --muted-foreground: #a2abbd;
+    --accent: #1e2638;
+    --accent-foreground: #eef1f7;
+    --destructive: #ff6b6b;
+    --border: #2a3247;
+    --input: #343d55;
+    --ring: #ffc53d;
+    --success: #5cc98e;
+    --success-foreground: #04170c;
+    --warning: #ff8a4c;
+    --warning-foreground: #2a1000;
+    --info: #7db2f0;
+    --info-foreground: #06172b;
+    --spend: #b79cff;
+    --spend-hover: #c9b4ff;
+    --spend-foreground: #1a0f33;
+    --status-todo: #6b7489;
+    --chart-1: #ffc53d;
+    --chart-2: #7db2f0;
+    --chart-3: #b79cff;
+    --chart-4: #5cc98e;
+    --chart-5: #a2abbd;
+    --sidebar: #121827;
+    --sidebar-foreground: #eef1f7;
+    --sidebar-primary: #ffc53d;
+    --sidebar-primary-foreground: #1a1405;
+    --sidebar-accent: #1e2638;
+    --sidebar-accent-foreground: #eef1f7;
+    --sidebar-border: #2a3247;
+    --sidebar-ring: #ffc53d;
 }
 
 @layer base {
@@ -142,6 +177,9 @@
   html {
     @apply font-sans;
     }
+  /* CJK reads better with more leading */
+  :lang(zh-Hant-HK) body { line-height: 1.65; }
+  ::selection { background: color-mix(in srgb, var(--primary) 45%, transparent); }
 }
 /* Parhelion extras */
 @layer components {

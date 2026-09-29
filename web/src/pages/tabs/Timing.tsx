@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TimerIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,54 +12,63 @@ import { api, Script, Timing } from "../../api";
 import { ErrorBox, Loading } from "../../components/common";
 
 export function TimingTab({ id, target }: { id: string; target: number }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
-  const t = useQuery({ queryKey: ["timing", id], queryFn: () => api.get<{ timing: Timing | null }>(`/api/projects/${id}/timing`) });
+  const tq = useQuery({ queryKey: ["timing", id], queryFn: () => api.get<{ timing: Timing | null }>(`/api/projects/${id}/timing`) });
   const s = useQuery({ queryKey: ["script", id], queryFn: () => api.get<{ script: Script | null }>(`/api/projects/${id}/script`) });
   const run = useMutation({
     mutationFn: () => api.post<{ timing: Timing }>(`/api/projects/${id}/timing`),
     onSuccess: (r) => {
-      toast.success(`Estimated ${r.timing.total_seconds.toFixed(1)}s`);
+      toast.success(t("timing.estimated", { seconds: r.timing.total_seconds.toFixed(1) }));
       qc.invalidateQueries({ queryKey: ["timing", id] });
       qc.invalidateQueries({ queryKey: ["project", id] });
     },
   });
-  const timing = t.data?.timing;
+  const timing = tq.data?.timing;
   const script = s.data?.script;
   const over = timing ? timing.total_seconds > target * 1.1 : false;
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>{timing?.source === "tts" ? "Timing from the voice track" : "Estimated timing"}</CardTitle>
-          <CardDescription>
-            {timing?.source === "tts"
-              ? "Real durations of the approved voice takes. Re-estimating replaces it with a character-count estimate."
-              : "From character count. Build the voice track (Voice tab) to replace this with real timing."}
-          </CardDescription>
+          <CardTitle>{timing?.source === "tts" ? t("timing.titleTts") : t("timing.titleEstimate")}</CardTitle>
+          <CardDescription>{timing?.source === "tts" ? t("timing.descTts") : t("timing.descEstimate")}</CardDescription>
           <CardAction>
             {timing?.source === "tts"
-              ? <span className="text-sm text-muted-foreground">Real timing: rebuild it in the Voice tab</span>
-              : <Button disabled={!script || run.isPending} onClick={() => run.mutate()}><TimerIcon /> {timing ? "Re-estimate" : "Estimate timing"}</Button>}
+              ? <span className="text-sm text-muted-foreground">{t("timing.realNote")}</span>
+              : <Button disabled={!script || run.isPending} onClick={() => run.mutate()}><TimerIcon /> {timing ? t("timing.reestimate") : t("timing.estimate")}</Button>}
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          {!script && !s.isLoading && <Alert><AlertDescription>Needs script.json first.</AlertDescription></Alert>}
+          {!script && !s.isLoading && <Alert><AlertDescription>{t("timing.needsScript")}</AlertDescription></Alert>}
           <ErrorBox error={run.error} />
           {timing && (
             <>
-              <div className="flex justify-between text-sm"><span>{timing.total_seconds.toFixed(1)}s at {timing.chars_per_second} chars/s</span><span className="text-muted-foreground">target {target}s</span></div>
+              <div className="flex justify-between text-sm">
+                <span>{t("timing.summary", { seconds: timing.total_seconds.toFixed(1), rate: timing.chars_per_second })}</span>
+                <span className="text-muted-foreground">{t("timing.target", { seconds: target })}</span>
+              </div>
               <Progress value={Math.min(100, (100 * timing.total_seconds) / target)} className={cn(over && "[&>div]:bg-destructive")} />
-              {over && <p className="text-sm text-destructive">Over target by more than 10% — shorten lines.</p>}
+              {over && <p className="text-sm text-destructive">{t("timing.over")}</p>}
             </>
           )}
         </CardContent>
       </Card>
-      {(t.isLoading || s.isLoading) && <Loading />}
+      {(tq.isLoading || s.isLoading) && <Loading />}
       {timing && script && (
         <Card>
           <CardContent>
             <Table>
-              <TableHeader><TableRow><TableHead>Line</TableHead><TableHead>Text</TableHead><TableHead className="num">Chars</TableHead><TableHead className="num">Start</TableHead><TableHead className="num">End</TableHead><TableHead className="w-[30%]">Position</TableHead></TableRow></TableHeader>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("timing.headers.line")}</TableHead>
+                  <TableHead>{t("timing.headers.text")}</TableHead>
+                  <TableHead className="num">{t("timing.headers.chars")}</TableHead>
+                  <TableHead className="num">{t("timing.headers.start")}</TableHead>
+                  <TableHead className="num">{t("timing.headers.end")}</TableHead>
+                  <TableHead className="w-[30%]">{t("timing.headers.position")}</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {timing.lines.map((l) => {
                   const line = script.lines.find((x) => x.id === l.line_id);
@@ -73,7 +83,7 @@ export function TimingTab({ id, target }: { id: string; target: number }) {
                       <TableCell className="num">{l.end.toFixed(1)}</TableCell>
                       <TableCell>
                         <div className="relative h-2.5 rounded bg-muted">
-                          <div className="absolute inset-y-0 rounded bg-primary" style={{ left: `${left}%`, width: `${width}%` }} />
+                          <div className="absolute inset-y-0 rounded bg-primary-mark" style={{ left: `${left}%`, width: `${width}%` }} />
                         </div>
                       </TableCell>
                     </TableRow>

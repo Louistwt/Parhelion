@@ -1,5 +1,6 @@
 import { CheckIcon, Columns3Icon, SquareIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Kbd } from "./common";
@@ -15,6 +16,7 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onDisc
   extra?: (name: string) => React.ReactNode;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [focus, setFocus] = useState(start);
   const [compare, setCompare] = useState(images.length <= 3);
 
@@ -43,27 +45,27 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onDisc
         <div className="flex min-w-0 items-center gap-3">
           <span className="truncate font-medium">{title}</span>
           <span className="hidden text-xs text-muted-foreground md:inline">
-            <Kbd>←</Kbd> <Kbd>→</Kbd> browse · <Kbd>Enter</Kbd> approve · <Kbd>Esc</Kbd> close
+            <Kbd>←</Kbd> <Kbd>→</Kbd> {t("panels.lightbox.browse")} · <Kbd>Enter</Kbd> {t("panels.lightbox.approve")} · <Kbd>Esc</Kbd> {t("panels.lightbox.close")}{/* i18n-ignore: keyboard key names */}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setCompare((c) => !c)}>
-            {compare ? <SquareIcon /> : <Columns3Icon />} {compare ? "Single view" : "Compare all"}
+            {compare ? <SquareIcon /> : <Columns3Icon />} {compare ? t("panels.lightbox.single") : t("panels.lightbox.compareAll")}
           </Button>
           {current && extra?.(current.name)}
           {current && onDiscard && (
             <Button variant="outline" size="sm" disabled={approved.includes(current.name)}
-              title={approved.includes(current.name) ? "Unapprove it first" : "Hide this image (moved to discarded/, not deleted)"}
-              onClick={() => { if (window.confirm(`Discard ${current.name}? It moves to the discarded/ folder and disappears from here.`)) onDiscard(current.name); }}>
-              <Trash2Icon /> Discard
+              title={approved.includes(current.name) ? t("panels.lightbox.unapproveFirst") : t("panels.lightbox.discardTitle")}
+              onClick={() => { if (window.confirm(t("panels.lightbox.confirmDiscard", { name: current.name }))) onDiscard(current.name); }}>
+              <Trash2Icon /> {t("common.actions.discard")}
             </Button>
           )}
           {current && (
             <Button size="sm" onClick={() => onApprove(current.name)}>
-              <CheckIcon /> {approved.includes(current.name) ? "Approved" : `Approve ${current.name.replace(/\.\w+$/, "")}`}
+              <CheckIcon /> {approved.includes(current.name) ? t("common.actions.approved") : t("panels.lightbox.approveName", { name: current.name.replace(/\.\w+$/, "") })}
             </Button>
           )}
-          <Button variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}><XIcon /></Button>
+          <Button variant="ghost" size="icon-sm" aria-label={t("common.actions.close")} onClick={onClose}><XIcon /></Button>
         </div>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-3 px-4 pb-4">
@@ -79,7 +81,7 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onDisc
                 compare && im.i === focus && "ring-2 ring-primary ring-offset-2 ring-offset-black",
               )}
             />
-            <figcaption className="text-xs text-muted-foreground">{im.name}{approved.includes(im.name) ? " · approved" : ""}</figcaption>
+            <figcaption className="text-xs text-muted-foreground">{im.name}{approved.includes(im.name) ? ` · ${t("panels.lightbox.approvedTag")}` : ""}</figcaption>
           </figure>
         ))}
       </div>

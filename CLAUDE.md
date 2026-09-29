@@ -145,7 +145,7 @@ Cost ledger `data/costs.jsonl` (one JSON object per line): `ts, project, stage, 
 
 ```
 Parhelion/
-  CLAUDE.md  STATE.md  README.md  pyproject.toml  .env  .env.example
+  CLAUDE.md  STATE.md  DESIGN.md  README.md  pyproject.toml  .env  .env.example
   config/
     models.yaml       # stage -> candidate models (first = default) + params
     prices.yaml       # model -> unit price, source URL, date verified
@@ -210,6 +210,7 @@ npm run dev                             # (repo root) API + UI with hot reload a
 - Never commit `.env` or project media. Keep `.gitignore` updated.
 - Keep it simple. **Local UI on localhost only**: React + Vite + TypeScript + Tailwind v4 + **shadcn/ui** in `web/` (npm workspace; `npm run dev` at the root runs API + UI), FastAPI JSON API in `parhelion/api/`. Use shadcn components (`npx shadcn@latest add <name>` in `web/`) rather than hand-rolled ones; theme tokens live in `web/src/index.css`. No hosting, auth, database or cloud deployment until STATE.md says so. The API is a thin layer: all pipeline logic stays in `parhelion/stages/` and `parhelion/cost.py`, shared with the CLI.
 - Paid runs in the UI follow the same guard as the CLI: estimate → budget check → explicit confirm → one background job at a time.
+- **UI design follows `DESIGN.md`** (Parhelion gold tokens, violet only for paid actions, one status scheme, status bar). **Every UI string goes through `t()`** with entries in both `web/src/locales/en/` and `web/src/locales/zh-Hant-HK/` (繁體, Hong Kong); `npm run typecheck` and `npm run i18n:check` must pass.
 
 ## Session habits
 

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRightIcon, ImageIcon, RotateCcwIcon, SaveIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, ImageIcon, ListVideoIcon, RotateCcwIcon, SaveIcon, XIcon } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { api, CharacterList, fileUrl, Shot } from "../../api";
 import { CopyButton, Empty, ErrorBox, Loading } from "../../components/common";
 import { LintPanel } from "../../components/LintPanel";
+import en from "../../locales/en/shots";
 
 type ShotsResp = { shots: Shot[] | null; framings: string[]; location_ref: string | null };
 type Form = {
@@ -25,7 +27,8 @@ type Form = {
 };
 type Who = { name: string; label: string };
 
-const CAMERAS = ["static camera", "slow push in", "slow pull out", "slow pan left", "slow pan right", "subtle handheld"];
+// Values stay English (they go to the video model); labels come from shots.cameras.
+const CAMERAS = Object.keys(en.cameras) as (keyof typeof en.cameras)[];
 const MIN_S = 3, MAX_S = 8;
 
 const toForm = (s: Shot): Form => ({
@@ -33,6 +36,13 @@ const toForm = (s: Shot): Form => ({
   motion_prompt: s.motion_prompt, camera: s.camera, on_camera_speech: s.on_camera_speech,
 });
 const same = (a: Form, b: Form) => JSON.stringify(a) === JSON.stringify(b);
+
+type TFn = ReturnType<typeof useTranslation>["t"];
+/** Framing keys come from library/prompt_templates.yaml; unknown keys are shown as-is. */
+const framingLabel = (t: TFn, f: string) => (f in en.framings ? t(`shots.framings.${f as keyof typeof en.framings}`) : f);
+const cameraLabel = (t: TFn, c: string) => (c in en.cameras ? t(`shots.cameras.${c as keyof typeof en.cameras}`) : c);
+const speakerLabel = (t: TFn, who: Who[], name: string) =>
+  who.find((w) => w.name === name)?.label ?? (name === "narrator" ? t("shots.narrator") : name);
 
 function Field({ label, htmlFor, hint, children, className }: { label: string; htmlFor?: string; hint?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -44,10 +54,11 @@ function Field({ label, htmlFor, hint, children, className }: { label: string; h
 }
 
 function PropsInput({ id, value, onChange }: { id: string; value: string[]; onChange: (v: string[]) => void }) {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const add = () => {
-    const t = text.trim();
-    if (t && !value.includes(t)) onChange([...value, t]);
+    const v = text.trim();
+    if (v && !value.includes(v)) onChange([...value, v]);
     setText("");
   };
   return (
@@ -55,13 +66,13 @@ function PropsInput({ id, value, onChange }: { id: string; value: string[]; onCh
       {value.map((p) => (
         <Badge key={p} variant="secondary" className="gap-1 pr-1">
           {p}
-          <button type="button" aria-label={`Remove ${p}`} className="rounded-sm opacity-60 hover:opacity-100" onClick={() => onChange(value.filter((x) => x !== p))}>
+          <button type="button" aria-label={t("common.actions.remove", { name: p })} className="rounded-sm opacity-60 hover:opacity-100" onClick={() => onChange(value.filter((x) => x !== p))}>
             <XIcon className="size-3" />
           </button>
         </Badge>
       ))}
       <input
-        id={id} value={text} placeholder={value.length ? "add…" : "e.g. two car keys (Enter to add)"}
+        id={id} value={text} placeholder={value.length ? t("shots.fields.propsAdd") : t("shots.fields.propsPlaceholder")}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } }}
         onBlur={add}
@@ -83,6 +94,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function ShotHeader({ id, shot, form, dirty, who }: { id: string; shot: Shot; form: Form; dirty: boolean; who: Who[] }) {
+  const { t } = useTranslation();
   const ok = shot.duration >= MIN_S && shot.duration <= MAX_S;
   const text = shot.lines.map((l) => l.text).join(" ");
   return (
@@ -95,18 +107,18 @@ function ShotHeader({ id, shot, form, dirty, who }: { id: string; shot: Shot; fo
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold">{shot.id}</span>
-          <span className="text-xs text-muted-foreground tabular-nums">{shot.start.toFixed(1)}–{shot.end.toFixed(1)}s</span>
-          <span className="flex items-center gap-1.5 text-xs tabular-nums" title={`Shots must be ${MIN_S}–${MAX_S}s`}>
+          <span className="text-xs text-muted-foreground tabular-nums">{t("common.seconds", { n: `${shot.start.toFixed(1)}–${shot.end.toFixed(1)}` })}</span>
+          <span className="flex items-center gap-1.5 text-xs tabular-nums" title={t("shots.durationRule", { min: MIN_S, max: MAX_S })}>
             <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-              <span className={cn("block h-full rounded-full", ok ? "bg-primary" : "bg-destructive")} style={{ width: `${Math.min(100, (shot.duration / MAX_S) * 100)}%` }} />
+              <span className={cn("block h-full rounded-full", ok ? "bg-primary-mark" : "bg-destructive")} style={{ width: `${Math.min(100, (shot.duration / MAX_S) * 100)}%` }} />
             </span>
-            <span className={ok ? "text-muted-foreground" : "text-destructive"}>{shot.duration.toFixed(1)}s</span>
+            <span className={ok ? "text-muted-foreground" : "text-destructive"}>{t("common.seconds", { n: shot.duration.toFixed(1) })}</span>
           </span>
-          <Badge variant="outline">{form.framing}</Badge>
+          <Badge variant="outline">{framingLabel(t, form.framing)}</Badge>
           {form.characters.map((c) => <Badge key={c} variant="secondary">{who.find((w) => w.name === c)?.label ?? c}</Badge>)}
-          {dirty && <Badge variant="warning">unsaved</Badge>}
+          {dirty && <Badge variant="warning">{t("common.unsaved")}</Badge>}
         </div>
-        <div className="truncate text-sm font-normal text-muted-foreground">{text || "(no line)"}</div>
+        <div className="truncate text-sm font-normal text-muted-foreground">{text || t("shots.noLine")}</div>
       </div>
     </div>
   );
@@ -116,6 +128,7 @@ function ShotEditor({ shot, form, setForm, framings, who, dirty, onSave, saving,
   shot: Shot; form: Form; setForm: (f: Form) => void; framings: string[]; who: Who[];
   dirty: boolean; onSave: () => void; saving: boolean; onReset: () => void;
 }) {
+  const { t } = useTranslation();
   const fid = (k: string) => `${shot.id}-${k}`;
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm({ ...form, [k]: v });
   const cameras = [...new Set([...CAMERAS, ...(form.camera ? [form.camera] : [])])];
@@ -124,72 +137,73 @@ function ShotEditor({ shot, form, setForm, framings, who, dirty, onSave, saving,
       {shot.lines.length > 0 && (
         <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
           {shot.lines.map((l) => (
-            <div key={l.id} className="text-[15px]"><span className="mr-2 text-xs text-muted-foreground">{l.id} · {who.find((w) => w.name === l.speaker)?.label ?? l.speaker}</span>{l.text}</div>
+            <div key={l.id} className="text-[15px]"><span className="mr-2 text-xs text-muted-foreground">{l.id} · {speakerLabel(t, who, l.speaker)}</span>{l.text}</div>
           ))}
         </div>
       )}
-      <Field label="Action" hint="what the picture shows; no text in images" htmlFor={fid("action")}>
+      <Field label={t("shots.fields.action")} hint={t("shots.fields.actionHint")} htmlFor={fid("action")}>
         <Textarea id={fid("action")} rows={3} value={form.action} onChange={(e) => set("action", e.target.value)} />
       </Field>
       <div className="grid gap-4 md:grid-cols-[200px_1fr]">
-        <Field label="Framing" htmlFor={fid("framing")}>
+        <Field label={t("shots.fields.framing")} htmlFor={fid("framing")}>
           <Select value={form.framing} onValueChange={(v) => set("framing", v)}>
             <SelectTrigger id={fid("framing")} className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>{[...new Set([...framings, form.framing])].map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+            <SelectContent>{[...new Set([...framings, form.framing])].map((f) => <SelectItem key={f} value={f}>{framingLabel(t, f)}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Setting" htmlFor={fid("setting")}>
+        <Field label={t("shots.fields.setting")} htmlFor={fid("setting")}>
           <Textarea id={fid("setting")} rows={2} value={form.setting} onChange={(e) => set("setting", e.target.value)} />
         </Field>
       </div>
       <div className="grid gap-4 md:grid-cols-[200px_1fr]">
-        <Field label="Who's in it">
+        <Field label={t("shots.fields.who")}>
           {who.length ? (
             <ToggleGroup type="multiple" variant="outline" size="sm" value={form.characters} onValueChange={(v) => set("characters", v)} className="flex-wrap">
               {who.map((w) => <ToggleGroupItem key={w.name} value={w.name} aria-label={w.label}>{w.label}</ToggleGroupItem>)}
             </ToggleGroup>
-          ) : <span className="text-sm text-muted-foreground">No characters in the library</span>}
+          ) : <span className="text-sm text-muted-foreground">{t("shots.fields.noCharacters")}</span>}
         </Field>
-        <Field label="Props" htmlFor={fid("props")}>
+        <Field label={t("shots.fields.props")} htmlFor={fid("props")}>
           <PropsInput id={fid("props")} value={form.props} onChange={(v) => set("props", v)} />
         </Field>
       </div>
-      <Section title="Motion & camera (for video clips)">
+      <Section title={t("shots.fields.motionSection")}>
         <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-          <Field label="Motion" hint="one simple movement" htmlFor={fid("motion")}>
-            <Input id={fid("motion")} value={form.motion_prompt} placeholder="e.g. he slowly pushes the keys across the desk" onChange={(e) => set("motion_prompt", e.target.value)} />
+          <Field label={t("shots.fields.motion")} hint={t("shots.fields.motionHint")} htmlFor={fid("motion")}>
+            <Input id={fid("motion")} value={form.motion_prompt} placeholder={t("shots.fields.motionPlaceholder")} onChange={(e) => set("motion_prompt", e.target.value)} />
           </Field>
-          <Field label="Camera" htmlFor={fid("camera")}>
+          <Field label={t("shots.fields.camera")} htmlFor={fid("camera")}>
             <Select value={form.camera || "static camera"} onValueChange={(v) => set("camera", v)}>
               <SelectTrigger id={fid("camera")} className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>{cameras.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent>{cameras.map((c) => <SelectItem key={c} value={c}>{cameraLabel(t, c)}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
         </div>
         <Label className="font-normal">
           <Switch checked={form.on_camera_speech} onCheckedChange={(v) => set("on_camera_speech", v)} />
-          Character speaks on camera (lip-sync; costs extra)
+          {t("shots.fields.speaks")}
         </Label>
       </Section>
-      <Field label="Notes" hint="shown on the storyboard" htmlFor={fid("notes")}>
+      <Field label={t("shots.fields.notes")} hint={t("shots.fields.notesHint")} htmlFor={fid("notes")}>
         <Input id={fid("notes")} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
       </Field>
-      <Section title="Prompt sent to the image model">
+      <Section title={t("shots.fields.promptSection")}>
         <div className="flex items-start justify-between gap-2">
-          <p className="text-xs text-muted-foreground">Built from the saved fields{dirty ? " (save to update)" : ""}.</p>
-          <CopyButton text={shot.prompt} label="Copy" />
+          <p className="text-xs text-muted-foreground">{dirty ? t("shots.fields.promptBuiltDirty") : t("shots.fields.promptBuilt")}</p>
+          <CopyButton text={shot.prompt} />
         </div>
         <div className="prompt-block">{shot.prompt}</div>
       </Section>
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={!dirty || saving} onClick={onSave}><SaveIcon /> Save {shot.id}</Button>
-        <Button size="sm" variant="ghost" disabled={!dirty || saving} onClick={onReset}><RotateCcwIcon /> Undo changes</Button>
+        <Button size="sm" disabled={!dirty || saving} onClick={onSave}><SaveIcon /> {t("shots.saveShot", { id: shot.id })}</Button>
+        <Button size="sm" variant="ghost" disabled={!dirty || saving} onClick={onReset}><RotateCcwIcon /> {t("common.actions.undo")}</Button>
       </div>
     </div>
   );
 }
 
 export function ShotsTab({ id }: { id: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["shots", id], queryFn: () => api.get<ShotsResp>(`/api/projects/${id}/shots`) });
   const chars = useQuery({ queryKey: ["characters"], queryFn: () => api.get<CharacterList>("/api/characters") });
@@ -207,7 +221,7 @@ export function ShotsTab({ id }: { id: string }) {
       return ids;
     },
     onSuccess: (ids) => {
-      toast.success(`Saved ${ids.join(", ")}`);
+      toast.success(t("shots.savedToast", { ids: ids.join(", ") }));
       setDrafts((d) => Object.fromEntries(Object.entries(d).filter(([k]) => !ids.includes(k))));
       qc.invalidateQueries({ queryKey: ["shots", id] });
       qc.invalidateQueries({ queryKey: ["keyframes", id] });
@@ -217,24 +231,22 @@ export function ShotsTab({ id }: { id: string }) {
 
   const setRoom = useMutation({
     mutationFn: (location_ref: string) => api.put(`/api/projects/${id}/shotlist`, { location_ref }),
-    onSuccess: () => { toast.success("Room reference saved"); qc.invalidateQueries({ queryKey: ["shots", id] }); qc.invalidateQueries({ queryKey: ["lint", id] }); },
+    onSuccess: () => { toast.success(t("shots.roomSavedToast")); qc.invalidateQueries({ queryKey: ["shots", id] }); qc.invalidateQueries({ queryKey: ["lint", id] }); },
     onError: (e) => toast.error(String(e)),
   });
 
-  const prompt =
-    `Read CLAUDE.md, projects/${id}/script.json, projects/${id}/timing.json and library/prompt_templates.yaml. ` +
-    `Write projects/${id}/shotlist.json: shots of 3–8 s that follow timing.json, each with line_ids, framing (from prompt_templates framings), ` +
-    `characters (library names), props, setting and action only — no text in images. Then run \`uv run parhelion lint ${id}\`.`;
+  // English in every language: it is pasted into Claude Code.
+  const prompt = t("shots.claudePrompt", { id });
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   if (!q.data?.shots) {
     return (
       <div className="flex flex-col gap-4">
-        <Empty title="No shot list yet">Estimate timing first, then ask Claude Code to build shotlist.json.</Empty>
+        <Empty title={t("shots.empty.title")} icon={ListVideoIcon}>{t("shots.empty.body")}</Empty>
         <Card>
           <CardHeader>
-            <CardTitle>Prompt for Claude Code</CardTitle>
-            <CardAction><CopyButton text={prompt} label="Copy prompt" /></CardAction>
+            <CardTitle>{t("shots.promptTitle")}</CardTitle>
+            <CardAction><CopyButton text={prompt} label={t("shots.copyPrompt")} /></CardAction>
           </CardHeader>
           <CardContent><div className="prompt-block">{prompt}</div></CardContent>
         </Card>
@@ -248,32 +260,32 @@ export function ShotsTab({ id }: { id: string }) {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>{shots.length} shots · {total.toFixed(1)}s</CardTitle>
-          <CardDescription>Open a shot to edit what the picture shows. Line text and timing come from the script; images are made in the Keyframes tab.</CardDescription>
+          <CardTitle>{t("shots.summary", { count: shots.length, seconds: total.toFixed(1) })}</CardTitle>
+          <CardDescription>{t("shots.description")}</CardDescription>
           <CardAction className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setOpen(open.length ? [] : shots.map((s) => s.id))}>{open.length ? "Collapse all" : "Expand all"}</Button>
+            <Button size="sm" variant="outline" onClick={() => setOpen(open.length ? [] : shots.map((s) => s.id))}>{open.length ? t("shots.collapseAll") : t("shots.expandAll")}</Button>
             <Button size="sm" disabled={!dirtyIds.length || save.isPending} onClick={() => save.mutate(dirtyIds)}>
-              <SaveIcon /> Save all{dirtyIds.length ? ` (${dirtyIds.length})` : ""}
+              <SaveIcon /> {dirtyIds.length ? t("shots.saveAllCount", { count: dirtyIds.length }) : t("common.actions.saveAll")}
             </Button>
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Label htmlFor="room-ref">Room reference</Label>
+            <Label htmlFor="room-ref">{t("shots.roomRef")}</Label>
             <Select value={room ?? "__none"} onValueChange={(v) => setRoom.mutate(v === "__none" ? "" : v)}>
               <SelectTrigger id="room-ref" className="w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none">none</SelectItem>
+                <SelectItem value="__none">{t("shots.roomNone")}</SelectItem>
                 {[...new Set([...(room ? [room] : []), ...roomOptions])].map((r) => <SelectItem key={r} value={r}>{r.replace("keyframes/", "").replace(/\.\w+$/, "")}</SelectItem>)}
               </SelectContent>
             </Select>
-            <span className="text-muted-foreground">An approved keyframe of the location, sent with every new keyframe so the room stays the same.</span>
+            <span className="text-muted-foreground">{t("shots.roomHint")}</span>
           </div>
-          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" aria-label="Shot timeline">
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" aria-label={t("shots.timeline")}>
             {shots.map((s, i) => (
-              <button key={s.id} type="button" title={`${s.id} · ${s.duration.toFixed(1)}s`}
+              <button key={s.id} type="button" title={`${s.id} · ${t("common.seconds", { n: s.duration.toFixed(1) })}`}
                 onClick={() => setOpen((o) => (o.includes(s.id) ? o : [...o, s.id]))}
-                className={cn("h-full border-r border-background last:border-r-0", i % 2 ? "bg-primary/60" : "bg-primary", s.approved_keyframe && "bg-success")}
+                className={cn("h-full border-r border-background last:border-r-0", i % 2 ? "bg-primary-mark/60" : "bg-primary-mark", s.approved_keyframe && "bg-success")}
                 style={{ width: `${(s.duration / (total || 1)) * 100}%` }} />
             ))}
           </div>

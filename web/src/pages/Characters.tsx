@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusIcon, SaveIcon, ScanFaceIcon, SparklesIcon } from "lucide-react";
+import { PlusIcon, SaveIcon, ScanFaceIcon, SparklesIcon, UsersIcon } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, Character, CharacterList, fileUrl, RunRequest, VoiceCatalog } from "../api";
-import { Empty, ErrorBox, Loading, PageHeader } from "../components/common";
+import { CostChip, Empty, ErrorBox, Loading, PageHeader } from "../components/common";
 import { JobProgress } from "../components/JobProgress";
 import { Lightbox } from "../components/Lightbox";
 import { ModelSelect } from "../components/ModelSelect";
@@ -21,6 +22,7 @@ import { useSettings } from "../format";
 import { useScopeJob } from "../jobs";
 
 function VoicePicker({ c, onGenerate }: { c: Character; onGenerate: (r: RunRequest) => void }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const cat = useQuery({ queryKey: ["voices"], queryFn: () => api.get<VoiceCatalog>("/api/voices"), staleTime: Infinity });
   const [lang, setLang] = useState<"mandarin" | "cantonese">(c.voice?.voice_id.startsWith("Cantonese") ? "cantonese" : "mandarin");
@@ -31,57 +33,57 @@ function VoicePicker({ c, onGenerate }: { c: Character; onGenerate: (r: RunReque
   const dirty = voiceId !== (c.voice?.voice_id ?? "") || speed !== (c.voice?.speed ?? 1) || emotion !== (c.voice?.emotion ?? "none");
   const save = useMutation({
     mutationFn: () => api.put(`/api/characters/${c.name}`, { voice: voiceId ? { voice_id: voiceId, speed, pitch: 0, emotion: emotion === "none" ? null : emotion } : {} }),
-    onSuccess: () => { toast.success(`${c.name}: voice saved`); qc.invalidateQueries({ queryKey: ["characters"] }); },
+    onSuccess: () => { toast.success(t("characters.voice.saved", { name: c.name })); qc.invalidateQueries({ queryKey: ["characters"] }); },
   });
   const options = cat.data?.catalog[lang] ?? [];
   const previews = c.voice_previews.filter((f) => f.startsWith(`voice_preview_${lang}_`));
   const latest = previews[previews.length - 1];
   return (
     <div className="flex flex-col gap-3 rounded-lg border p-3">
-      <div className="text-sm font-medium">Voice <span className="font-normal text-muted-foreground">— a human choice; used for every line this character speaks</span></div>
+      <div className="text-sm font-medium">{t("characters.voice.heading")} <span className="font-normal text-muted-foreground">{t("characters.voice.headingNote")}</span></div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Language</Label>
+          <Label className="text-xs text-muted-foreground">{t("characters.voice.language")}</Label>
           <Select value={lang} onValueChange={(v) => setLang(v as "mandarin" | "cantonese")}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="mandarin">普通话</SelectItem><SelectItem value="cantonese">粤语</SelectItem></SelectContent>
+            <SelectContent><SelectItem value="mandarin">{t("characters.languages.mandarin")}</SelectItem><SelectItem value="cantonese">{t("characters.languages.cantonese")}</SelectItem></SelectContent>
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Voice</Label>
+          <Label className="text-xs text-muted-foreground">{t("characters.voice.voice")}</Label>
           <Select value={voiceId || "__none"} onValueChange={(v) => setVoiceId(v === "__none" ? "" : v)}>
-            <SelectTrigger className="w-64"><SelectValue placeholder="Pick a voice" /></SelectTrigger>
+            <SelectTrigger className="w-64"><SelectValue placeholder={t("characters.voice.pick")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none">— none —</SelectItem>
+              <SelectItem value="__none">{t("characters.voice.none")}</SelectItem>
               {voiceId && !options.some((o) => o.id === voiceId) && <SelectItem value={voiceId}>{voiceId}</SelectItem>}
               {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${c.name}-speed`} className="text-xs text-muted-foreground">Speed</Label>
+          <Label htmlFor={`${c.name}-speed`} className="text-xs text-muted-foreground">{t("characters.voice.speed")}</Label>
           <Input id={`${c.name}-speed`} type="number" min={0.5} max={2} step={0.05} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-20" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Default emotion</Label>
+          <Label className="text-xs text-muted-foreground">{t("characters.voice.emotion")}</Label>
           <Select value={emotion} onValueChange={setEmotion}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">auto</SelectItem>
+              <SelectItem value="none">{t("characters.voice.emotionAuto")}</SelectItem>
               {(cat.data?.emotions ?? []).map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" disabled={!dirty || save.isPending} onClick={() => save.mutate()}><SaveIcon /> Save voice</Button>
+        <Button variant="outline" disabled={!dirty || save.isPending} onClick={() => save.mutate()}><SaveIcon /> {t("characters.voice.save")}</Button>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-60 flex-1 flex-col gap-1.5">
-          <Label htmlFor={`${c.name}-sample`} className="text-xs text-muted-foreground">Preview text</Label>
+          <Label htmlFor={`${c.name}-sample`} className="text-xs text-muted-foreground">{t("characters.voice.previewText")}</Label>
           <Input id={`${c.name}-sample`} value={sample} onChange={(e) => setSample(e.target.value)} />
         </div>
-        <Button variant="outline" disabled={!c.voice || dirty} title={dirty ? "Save the voice first" : undefined}
+        <Button variant="spend" disabled={!c.voice || dirty} title={dirty ? t("characters.voice.saveFirst") : undefined}
           onClick={() => onGenerate({ kind: "voice_preview", name: c.name, text: sample, language: lang })}>
-          <SparklesIcon /> Preview (≈ $0.003)
+          <SparklesIcon /> {t("characters.voice.preview")} <CostChip>≈ $0.003</CostChip>
         </Button>
         {latest && (
           <div className="flex items-center gap-2">
@@ -97,18 +99,23 @@ function VoicePicker({ c, onGenerate }: { c: Character; onGenerate: (r: RunReque
 
 type Styles = { styles: string[]; default_style: string };
 
+const STYLE_NAMES = { cartoon: "characters.styleNames.cartoon", realistic: "characters.styleNames.realistic" } as const;
+
 function StyleSelect({ id, value, onChange, styles }: { id: string; value: string; onChange: (v: string) => void; styles: Styles }) {
+  const { t } = useTranslation();
+  const label = (s: string) => (s in STYLE_NAMES ? t(STYLE_NAMES[s as keyof typeof STYLE_NAMES]) : s);
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger id={id} className="w-full"><SelectValue /></SelectTrigger>
       <SelectContent>
-        {styles.styles.map((s) => <SelectItem key={s} value={s}>{s}{s === styles.default_style ? " (default)" : ""}</SelectItem>)}
+        {styles.styles.map((s) => <SelectItem key={s} value={s}>{s === styles.default_style ? t("characters.styleDefault", { style: label(s) }) : label(s)}</SelectItem>)}
       </SelectContent>
     </Select>
   );
 }
 
 function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles; onGenerate: (r: RunRequest) => void }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const settings = useSettings();
   const savedStyle = c.style ?? styles.default_style;
@@ -121,7 +128,7 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
   const refresh = () => qc.invalidateQueries({ queryKey: ["characters"] });
   const save = useMutation({
     mutationFn: () => api.put(`/api/characters/${c.name}`, { display_name: display, prompt_block: block, style }),
-    onSuccess: () => { toast.success(`${c.name} saved`); refresh(); },
+    onSuccess: () => { toast.success(t("characters.card.saved", { name: c.name })); refresh(); },
   });
   const toggle = useMutation({
     mutationFn: (name: string) => {
@@ -129,16 +136,16 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
       const action = c.approved_sheets.includes(name) ? "unapprove" : "approve";
       return api.post(`/api/characters/${c.name}/sheets/v${v}/${action}`);
     },
-    onSuccess: (_, name) => { toast.success(`${name} ${c.approved_sheets.includes(name) ? "unapproved" : "approved as reference"}`); refresh(); },
+    onSuccess: (_, name) => { toast.success(t(c.approved_sheets.includes(name) ? "characters.card.unapproved" : "characters.card.approvedAsReference", { name })); refresh(); },
   });
   const setFace = useMutation({
     mutationFn: (name: string) => api.put(`/api/characters/${c.name}`, { face_ref: c.face_ref === name ? "" : name }),
-    onSuccess: (_, name) => { toast.success(c.face_ref === name ? "Face reference cleared" : `${name} is now the face reference`); refresh(); },
+    onSuccess: (_, name) => { toast.success(c.face_ref === name ? t("characters.card.faceCleared") : t("characters.card.faceSet", { name })); refresh(); },
     onError: (e) => toast.error(String(e)),
   });
   const discard = useMutation({
     mutationFn: (name: string) => api.post(`/api/characters/${c.name}/sheets/v${name.match(/_v(\d+)\./)?.[1]}/discard`),
-    onSuccess: (_, name) => { toast.success(`${name} discarded`); refresh(); },
+    onSuccess: (_, name) => { toast.success(t("characters.card.discarded", { name })); refresh(); },
     onError: (e) => toast.error(String(e)),
   });
   const dirty = display !== c.display_name || block !== c.prompt_block || style !== savedStyle;
@@ -150,8 +157,8 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
       <CardHeader>
         <CardTitle className="flex items-center gap-2">{c.display_name || c.name} <span className="font-mono text-xs font-normal text-muted-foreground">{c.name}</span></CardTitle>
         <CardAction>
-          <Badge variant={reference ? "success" : "warning"} title="Keyframes use one sheet per character: the most recently approved.">
-            {reference ? `reference: ${reference.replace(/\.\w+$/, "")}` : "no reference sheet"}{c.face_ref ? ` · face: ${c.face_ref.replace(/\.\w+$/, "")}` : ""}
+          <Badge variant={reference ? "success" : "warning"} title={t("characters.card.referenceTitle")}>
+            {reference ? t("characters.card.reference", { name: reference.replace(/\.\w+$/, "") }) : t("characters.card.noReference")}{c.face_ref ? t("characters.card.face", { name: c.face_ref.replace(/\.\w+$/, "") }) : ""}
           </Badge>
         </CardAction>
       </CardHeader>
@@ -159,45 +166,45 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
         <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${c.name}-dn`}>Display name</Label>
+              <Label htmlFor={`${c.name}-dn`}>{t("characters.card.displayName")}</Label>
               <Input id={`${c.name}-dn`} value={display} onChange={(e) => setDisplay(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${c.name}-style`}>Style</Label>
+              <Label htmlFor={`${c.name}-style`}>{t("characters.card.style")}</Label>
               <StyleSelect id={`${c.name}-style`} value={style} onChange={setStyle} styles={styles} />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${c.name}-pb`}>Look — sent to the image model (appearance only, no text)</Label>
+            <Label htmlFor={`${c.name}-pb`}>{t("characters.card.look")}</Label>
             <Textarea id={`${c.name}-pb`} rows={5} value={block} onChange={(e) => setBlock(e.target.value)} />
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" disabled={!dirty || save.isPending} onClick={() => save.mutate()}><SaveIcon /> Save description</Button>
-          {dirty && <span className="text-sm text-warning">Save before generating — the saved text is what gets sent.</span>}
+          <Button variant="outline" disabled={!dirty || save.isPending} onClick={() => save.mutate()}><SaveIcon /> {t("characters.card.saveDescription")}</Button>
+          {dirty && <span className="text-sm text-warning">{t("characters.card.saveBeforeGenerating")}</span>}
         </div>
         <ErrorBox error={save.error} />
         <VoicePicker c={c} onGenerate={onGenerate} />
         <ThumbGrid>
           {images.map((im, i) => (
-            <Thumb key={im.name} src={im.src} label={im.name.replace(/\.\w+$/, "") + (im.name === c.face_ref ? " · face" : "") + (im.name === reference && im.name !== c.face_ref ? " · reference" : "")} approved={c.approved_sheets.includes(im.name)} onClick={() => setOpen(i)} />
+            <Thumb key={im.name} src={im.src} label={im.name.replace(/\.\w+$/, "") + (im.name === c.face_ref ? t("characters.card.thumbFace") : "") + (im.name === reference && im.name !== c.face_ref ? t("characters.card.thumbReference") : "")} approved={c.approved_sheets.includes(im.name)} onClick={() => setOpen(i)} />
           ))}
-          {images.length === 0 && <ThumbEmpty label="no sheets yet" />}
+          {images.length === 0 && <ThumbEmpty label={t("characters.card.noSheets")} />}
         </ThumbGrid>
         <div className="flex flex-wrap items-end gap-4">
           <ModelSelect id={`${c.name}-model`} value={model} onChange={setModel} />
           <Label className="font-normal">
             <Checkbox checked={useRefs} disabled={!c.approved_sheets.length} onCheckedChange={(v) => setUseRefs(v === true)} />
-            refine from approved sheets
+            {t("characters.card.refine")}
           </Label>
-          <Button disabled={dirty} onClick={() => onGenerate({ kind: "character", name: c.name, n, model: model || undefined, use_approved: useRefs })}>
-            <SparklesIcon /> Generate {n} sheet(s)
+          <Button variant="spend" disabled={dirty} onClick={() => onGenerate({ kind: "character", name: c.name, n, model: model || undefined, use_approved: useRefs })}>
+            <SparklesIcon /> {t("characters.card.generateSheets", { count: n })}
           </Button>
         </div>
       </CardContent>
       {open !== null && (
         <Lightbox
-          title={`${c.display_name || c.name} — the last approved sheet is the keyframe reference; Discard hides one you don't want`}
+          title={t("characters.card.lightboxTitle", { name: c.display_name || c.name })}
           images={images}
           approved={c.approved_sheets}
           start={open}
@@ -205,8 +212,8 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
           onDiscard={(name) => discard.mutate(name)}
           extra={(name) => (
             <Button variant="outline" size="sm" onClick={() => setFace.mutate(name)}
-              title="A close-up of the face, sent with every keyframe next to the full-body sheet (keeps age and features stable)">
-              <ScanFaceIcon /> {c.face_ref === name ? "Face reference ✓" : "Use as face reference"}
+              title={t("characters.card.faceRefTitle")}>
+              <ScanFaceIcon /> {c.face_ref === name ? t("characters.card.faceRefActive") : t("characters.card.useAsFaceRef")}
             </Button>
           )}
           onClose={() => setOpen(null)}
@@ -217,6 +224,7 @@ function CharacterCard({ c, styles, onGenerate }: { c: Character; styles: Styles
 }
 
 function NewCharacter({ styles }: { styles: Styles }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [display, setDisplay] = useState("");
@@ -225,7 +233,7 @@ function NewCharacter({ styles }: { styles: Styles }) {
   const m = useMutation({
     mutationFn: () => api.post("/api/characters", { name, display_name: display, prompt_block: block, style }),
     onSuccess: () => {
-      toast.success(`Added ${display || name}`);
+      toast.success(t("characters.new.added", { name: display || name }));
       setName(""); setDisplay(""); setBlock("");
       qc.invalidateQueries({ queryKey: ["characters"] });
     },
@@ -234,21 +242,26 @@ function NewCharacter({ styles }: { styles: Styles }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New character</CardTitle>
-        <CardDescription>Describe the look only: age, ethnicity, build, hair, full outfit down to the shoes, colours, a signature prop. Plain sentences work best. Style sets how every image of this character is drawn; keep one style per video.</CardDescription>
+        <CardTitle>{t("characters.new.title")}</CardTitle>
+        <CardDescription>{t("characters.new.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-3" onSubmit={submit}>
           <div className="grid gap-3 sm:grid-cols-[160px_160px_160px_1fr]">
-            <div className="flex flex-col gap-1.5"><Label htmlFor="nc-id">ID</Label><Input id="nc-id" value={name} onChange={(e) => setName(e.target.value)} placeholder="zhangshu" required /></div>
-            <div className="flex flex-col gap-1.5"><Label htmlFor="nc-dn">Display name</Label><Input id="nc-dn" value={display} onChange={(e) => setDisplay(e.target.value)} placeholder="张叔" /></div>
-            <div className="flex flex-col gap-1.5"><Label htmlFor="nc-style">Style</Label><StyleSelect id="nc-style" value={style} onChange={setStyle} styles={styles} /></div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nc-look">Look</Label>
-              <Textarea id="nc-look" rows={2} value={block} onChange={(e) => setBlock(e.target.value)} placeholder="A Chinese man in his 60s, stocky build, round face, grey buzz cut, white singlet, grey trousers, cloth slippers, holding a steaming teacup" required />
+              <Label htmlFor="nc-id">{t("characters.new.id")}</Label>
+              <Input id="nc-id" value={name} onChange={(e) => setName(e.target.value)} required
+                placeholder="zhangshu" // i18n-ignore: example id (data)
+              />
+            </div>
+            <div className="flex flex-col gap-1.5"><Label htmlFor="nc-dn">{t("characters.new.displayName")}</Label><Input id="nc-dn" value={display} onChange={(e) => setDisplay(e.target.value)} placeholder="张叔" /></div>
+            <div className="flex flex-col gap-1.5"><Label htmlFor="nc-style">{t("characters.new.style")}</Label><StyleSelect id="nc-style" value={style} onChange={setStyle} styles={styles} /></div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nc-look">{t("characters.new.look")}</Label>
+              <Textarea id="nc-look" rows={2} value={block} onChange={(e) => setBlock(e.target.value)} placeholder={t("characters.new.lookPlaceholder")} required />
             </div>
           </div>
-          <div><Button type="submit" disabled={m.isPending}><PlusIcon /> Add character</Button></div>
+          <div><Button type="submit" disabled={m.isPending}><PlusIcon /> {t("characters.new.add")}</Button></div>
           <ErrorBox error={m.error} />
         </form>
       </CardContent>
@@ -257,16 +270,17 @@ function NewCharacter({ styles }: { styles: Styles }) {
 }
 
 export function Characters() {
+  const { t } = useTranslation();
   const q = useQuery({ queryKey: ["characters"], queryFn: () => api.get<CharacterList>("/api/characters") });
   const [pending, setPending] = useState<RunRequest | null>(null);
   const { jobId, setJob } = useScopeJob("characters", (j) => j.kind === "character" || j.kind === "voice_preview");
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Characters" description="Reference sheets are shared by every video. Approved sheets are sent as references for keyframes." />
+      <PageHeader title={t("characters.title")} description={t("characters.description")} />
       {jobId && <JobProgress jobId={jobId} invalidate={[["characters"], ["overview"], ["costs"]]} onDismiss={() => setJob(null)} />}
       {q.isLoading && <Loading />}
       <ErrorBox error={q.error} />
-      {q.data && q.data.characters.length === 0 && <Empty title="No characters yet">Add one below — describe the look only.</Empty>}
+      {q.data && q.data.characters.length === 0 && <Empty title={t("characters.empty.title")} icon={UsersIcon}>{t("characters.empty.body")}</Empty>}
       {q.data?.characters.map((c) => <CharacterCard key={`${c.name}-${c.prompt_block}-${c.display_name}-${c.style}`} c={c} styles={q.data} onGenerate={setPending} />)}
       {q.data && <NewCharacter styles={q.data} />}
       {pending && <SpendModal request={pending} onClose={() => setPending(null)} onStarted={(job) => setJob(job.id)} />}

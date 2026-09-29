@@ -1,0 +1,63 @@
+import type en from "../en/panels";
+import type { Messages } from "../types";
+
+const panels: Messages<typeof en> = {
+  spend: {
+    title: "確認支出",
+    description: "按 config/prices.yaml 估算。確認前不會送出任何請求。",
+    cols: { request: "請求", endpoint: "模型端點", units: "數量", unitPrice: "單價", cost: "費用" },
+    total: "總計（估算）",
+    budget: "本月至今 {{spent}}／預算 {{budget}} · 每次上限 {{cap}}",
+    blocked: "已阻止：{{reason}}",
+    noFalKey: ".env 未設定 FAL_KEY — 請加入後重新啟動程式。",
+    prompts: "將送出的提示詞（{{count}}）",
+    references_one: "{{count}} 張參考圖",
+    references_other: "{{count}} 張參考圖",
+    starting: "開始中…",
+    spend: "支出",
+    startedToast: "已開始生成 — 估算 {{cost}}",
+  },
+  lightbox: {
+    browse: "瀏覽",
+    approve: "批准",
+    close: "關閉",
+    single: "單張檢視",
+    compareAll: "全部比較",
+    unapproveFirst: "請先取消批准",
+    discardTitle: "隱藏此圖（移至 discarded/，不會刪除）",
+    confirmDiscard: "棄用 {{name}}？它會移至 discarded/ 資料夾，並從這裏消失。",
+    approveName: "批准 {{name}}",
+    approvedTag: "已批准",
+  },
+  lint: {
+    title: "檢查",
+    description: "CLAUDE.md 中的固定規則",
+    descriptionScope: "CLAUDE.md 中的固定規則 — {{scope}}",
+    errors_one: "{{count}} 個錯誤",
+    errors_other: "{{count}} 個錯誤",
+    warnings_one: "{{count}} 個警告",
+    warnings_other: "{{count}} 個警告",
+    rerun: "重新檢查",
+    allPass: "全部檢查通過。",
+    levels: { error: "錯誤", warn: "警告" },
+  },
+  job: {
+    title: "生成工作",
+    status: { queued: "排隊中", running: "進行中", done: "完成", failed: "失敗", blocked: "已阻止" },
+    progress: "{{done}}/{{total}} 個請求 · 估算 {{cost}}",
+    dismiss: "關閉",
+    doneToast_one: "生成完成：已儲存 {{count}} 個請求",
+    doneToast_other: "生成完成：已儲存 {{count}} 個請求",
+    partialToast_one: "已完成，但 {{count}} 個請求失敗 — 已完成的圖片已保留",
+    partialToast_other: "已完成，但 {{count}} 個請求失敗 — 已完成的圖片已保留",
+    errorToast: "工作{{status}}：{{error}}",
+    seeLog: "請查看記錄",
+  },
+  model: {
+    label: "模型",
+    default: "（預設）",
+    unverified: "⚠ 未核實",
+  },
+};
+
+export default panels;

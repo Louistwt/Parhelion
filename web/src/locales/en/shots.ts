@@ -1,0 +1,71 @@
+const shots = {
+  summary_one: "{{count}} shot · {{seconds}} s",
+  summary_other: "{{count}} shots · {{seconds}} s",
+  description: "Open a shot to edit what the picture shows. Line text and timing come from the script; images are made in the Keyframes tab.",
+  expandAll: "Expand all",
+  collapseAll: "Collapse all",
+  saveAllCount: "Save all ({{count}})",
+  saveShot: "Save {{id}}",
+  savedToast: "Saved {{ids}}",
+  roomSavedToast: "Room reference saved",
+  roomRef: "Room reference",
+  roomNone: "none",
+  roomHint: "An approved keyframe of the location, sent with every new keyframe so the room stays the same.",
+  timeline: "Shot timeline",
+  empty: {
+    title: "No shot list yet",
+    body: "Estimate timing first, then ask Claude Code to build shotlist.json.",
+  },
+  promptTitle: "Prompt for Claude Code",
+  copyPrompt: "Copy prompt",
+  claudePrompt:
+    "Read CLAUDE.md, projects/{{id}}/script.json, projects/{{id}}/timing.json and library/prompt_templates.yaml. " +
+    "Write projects/{{id}}/shotlist.json: shots of 3–8 s that follow timing.json, each with line_ids, framing (from prompt_templates framings), " +
+    "characters (library names), props, setting and action only — no text in images. Then run `uv run parhelion lint {{id}}`.",
+  durationRule: "Shots must be {{min}}–{{max}} s",
+  noLine: "(no line)",
+  narrator: "Narrator",
+  fields: {
+    action: "Action",
+    actionHint: "what the picture shows; no text in images",
+    framing: "Framing",
+    setting: "Setting",
+    who: "Who's in it",
+    noCharacters: "No characters in the library",
+    props: "Props",
+    propsAdd: "add…",
+    propsPlaceholder: "e.g. two car keys (Enter to add)",
+    motionSection: "Motion & camera (for video clips)",
+    motion: "Motion",
+    motionHint: "one simple movement",
+    motionPlaceholder: "e.g. he slowly pushes the keys across the desk",
+    camera: "Camera",
+    speaks: "Character speaks on camera (lip-sync; costs extra)",
+    notes: "Notes",
+    notesHint: "shown on the storyboard",
+    promptSection: "Prompt sent to the image model",
+    promptBuilt: "Built from the saved fields.",
+    promptBuiltDirty: "Built from the saved fields (save to update).",
+  },
+  /** Labels for the camera moves; the English key is the value sent to the video model. */
+  cameras: {
+    "static camera": "static camera",
+    "slow push in": "slow push in",
+    "slow pull out": "slow pull out",
+    "slow pan left": "slow pan left",
+    "slow pan right": "slow pan right",
+    "subtle handheld": "subtle handheld",
+  },
+  /** Labels for the framing keys in library/prompt_templates.yaml; unknown keys are shown as-is. */
+  framings: {
+    wide: "wide",
+    medium: "medium",
+    "medium close-up": "medium close-up",
+    "close-up": "close-up",
+    "over-the-shoulder": "over-the-shoulder",
+    insert: "insert",
+    "two-shot": "two-shot",
+  },
+};
+
+export default shots;

@@ -1,7 +1,9 @@
+import { useTranslation } from "react-i18next";
 import { Bar } from "../api";
 
 export function BarList({ rows, fmt }: { rows: Bar[]; fmt: (v: number) => string }) {
-  if (!rows.length) return <p className="text-sm text-muted-foreground">No spend yet.</p>;
+  const { t } = useTranslation();
+  if (!rows.length) return <p className="text-sm text-muted-foreground">{t("costs.charts.noSpend")}</p>;
   return (
     <div className="flex flex-col gap-1.5">
       {rows.map((r) => (
@@ -17,12 +19,13 @@ export function BarList({ rows, fmt }: { rows: Bar[]; fmt: (v: number) => string
 
 /** Daily spend columns (single series → no legend; hover shows the value). */
 export function DayColumns({ cols, peak, fmt }: { cols: { day: string; value: number }[]; peak: number; fmt: (v: number) => string }) {
-  if (peak <= 0) return <p className="text-sm text-muted-foreground">No spend in the last 30 days.</p>;
+  const { t } = useTranslation();
+  if (peak <= 0) return <p className="text-sm text-muted-foreground">{t("costs.charts.noSpend30")}</p>;
   const w = 600, h = 150, padL = 44, padB = 18, padT = 8;
   const slot = (w - padL) / cols.length;
   const bw = Math.max(2, slot - 2);
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Daily spend, last 30 days">
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label={t("costs.charts.dailyLabel")}>
       <g className="fill-muted-foreground text-[10px]">
         <text x={padL - 4} y={padT + 4} textAnchor="end">{fmt(peak)}</text>
         <text x={padL - 4} y={h - padB} textAnchor="end">0</text>
