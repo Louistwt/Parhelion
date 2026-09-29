@@ -3,6 +3,7 @@ import pytest
 from parhelion import project as proj
 from parhelion.config import Paths, UserError, image_model, pipeline_cfg, prompt_templates
 from parhelion.stages import characters, keyframes
+from parhelion.schemas import Character
 from parhelion.stages.lint import lint_shotlist
 from parhelion.stages.prompts import compose_character_prompt, load_character, plain_text, save_character
 
@@ -101,3 +102,14 @@ def test_sheet_from_reference_keeps_face_not_clothes(root):
     assert job.endpoint.endswith("/edit") and "ignore the clothes" in job.job.prompt
     plain = characters.build(paths, "xiaowang", n=1, model_key=None).jobs[0]
     assert "reference image" not in plain.job.prompt
+
+
+def test_sheets_use_sheet_style_wording(root):
+    """Realistic sheets use the older photo wording (the keyframe wording made 3D-toy sheets on Seedream)."""
+    templates = prompt_templates(root)
+    c = Character(name="x", prompt_block="a man", style="realistic")
+    sheet = compose_character_prompt(templates, c)
+    assert sheet.startswith("photorealistic photograph of real people") and "no CGI look" not in sheet
+    assert "lived-in" not in sheet and "plain light grey studio background" in sheet
+    cartoon = compose_character_prompt(templates, Character(name="y", prompt_block="a man", style="cartoon"))
+    assert cartoon.startswith("flat 2D cartoon illustration")  # no sheet_styles entry: normal style

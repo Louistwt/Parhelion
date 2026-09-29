@@ -18,15 +18,15 @@ Worked example: [briefs/demo-b-oesophageal.md](briefs/demo-b-oesophageal.md).
 |---|---|---|
 | **Language** | 普通话 (Mandarin) or 粤语 (Cantonese). Cantonese videos get spoken Cantonese audio + written-Chinese subtitles. | Mandarin |
 | **Target length** | 30, 60 or 90 seconds. 60 s is the sweet spot for one idea. | 60 s |
-| **Format** | How the video is told (see *Formats* below). | Skit |
-| **Tone** | 3–6 words. Humour is optional. | Light, warm teasing of habits |
-| **Characters** | Names from the Characters page, with one line on each one's role. | 小王 — young agent; 张叔 — client |
-| **Key point** | The ONE HK-vs-mainland difference viewers must remember. From your partner. One sentence. | HK medical plans can be guaranteed renewable into old age; many mainland plans renew yearly. |
-| **What to say** | One sentence an agent can repeat to a real client. Humans write or pick it. | 您家里长寿是好事，那保障也要一样长寿。 |
+| **Format** | How the video is told (see *Formats* below). | News presenter |
+| **Tone** | 3–6 words. Humour is optional. | Calm news delivery, lightly wry about habits |
+| **Characters** | Names from the Characters page, with one line on each one's role. | 小朱 — news anchor; 小明 — loves hotpot and drinking |
+| **Key point** | The ONE HK-vs-mainland difference viewers must remember. From your partner. One sentence. | In-situ (stage 0) cancer is not covered by the mainland CI standard unless the product adds it; many HK plans pay part. |
+| **What to say** | One sentence an agent can repeat to a real client. Humans write or pick it. | 我们先看看，原位癌这份保障管不管。 |
 | **Beats** | The order of events (see *Beats* below). | hook → setup → key_point → what_to_say → close |
-| **Facts to use** | Every medical or insurance fact the video relies on, **with a source**. Your partner confirms each one. | IARC 2016: very hot drinks > 65 °C "probably carcinogenic" |
+| **Facts to use** | Every medical or insurance fact the video relies on, **with a source**. Your partner confirms each one. | IARC 2009: alcohol is Group 1, oesophagus among the sites |
 | **Must avoid** | Anything the video must not say or show. | Company names, fear tactics, jokes about symptoms |
-| **Notes / ideas** | Anything else: a visual gag, a phrase clients really use, a reference video. | Uncle Zhang's giant tea jar |
+| **Notes / ideas** | Anything else: a visual gag, a phrase clients really use, a reference video. | Anchor centred, mainland \| HK text on either side |
 
 ---
 

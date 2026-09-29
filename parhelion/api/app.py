@@ -24,7 +24,7 @@ from ..config import (
 from ..media import system_status
 from ..cost import Ledger, PriceMissing, budget_status, entry_cost, sync_actuals
 from ..providers.base import ImageProvider, ProviderError
-from ..schemas import Character, Shot, Voice
+from ..schemas import DEFAULT_LOOK, Character, Look, Shot, Voice
 from ..stages import assemble as AS
 from ..stages import characters as C
 from ..stages import clips as CL
@@ -35,7 +35,8 @@ from ..stages import lint as L
 from ..stages import storyboard as SB
 from ..stages.imagegen_plan import RunPlan
 from ..stages.prompts import (
-    character_dir, compose_shot_prompt, default_style, load_character, save_character, script_style, style_text, styles,
+    character_dir, compose_shot_prompt, default_style, load_character, save_character, script_style, shot_characters,
+    style_text, styles, with_look,
 )
 from ..stages.timing import estimate as estimate_timing
 from ..stages.timing import speech_chars
@@ -77,16 +78,40 @@ class ClaimUpdate(BaseModel):
 class CharacterBody(BaseModel):
     name: str
     display_name: str = ""
-    prompt_block: str
+    prompt_block: str  # the person (face, hair, build)
+    outfit: str = ""  # main look's clothes
     style: str | None = None
+    voice: dict | None = None  # {voice_id, speed, pitch, emotion}
 
 
 class CharacterUpdate(BaseModel):
     display_name: str | None = None
     prompt_block: str | None = None
+    outfit: str | None = None
     style: str | None = None
     face_ref: str | None = None  # file name in the character folder; "" clears it
     voice: dict | None = None  # {voice_id, speed, pitch, emotion}; {} clears it
+
+
+class LookBody(BaseModel):
+    label: str = ""
+    outfit: str
+    style: str | None = None  # "" or null = the character's style
+    use_face_ref: bool = True
+
+
+class NameBody(BaseModel):
+    name: str  # "" clears it
+
+
+class CastBody(BaseModel):
+    cast: dict[str, str]  # character -> look ("default" = main look); characters left out are not in the video
+
+
+class PhotoBody(BaseModel):
+    filename: str
+    data: str  # base64 (a data: URL prefix is allowed)
+    consent: bool = False  # the person agreed to their likeness being used in these videos
 
 
 class ShotUpdate(BaseModel):
@@ -99,10 +124,12 @@ class ShotUpdate(BaseModel):
     motion_prompt: str | None = None
     camera: str | None = None
     on_camera_speech: bool | None = None
+    looks: dict[str, str] | None = None  # character -> look for this shot; {} clears
 
 
 class ShotListUpdate(BaseModel):
-    location_ref: str | None = None  # "" or null clears it
+    location_ref: str | None = None  # "" or null clears it (only when sent)
+    looks: dict[str, str] | None = None  # character -> look for the whole video; {} clears
 
 
 class RunRequest(BaseModel):
@@ -117,6 +144,9 @@ class RunRequest(BaseModel):
     model: str | None = None
     use_approved: bool = False
     include_approved: bool = False
+    look: str | None = None  # character sheet runs: which look (outfit) to generate
+    face_first: bool = False  # character sheet runs: generate a face portrait first and use it as the face reference
+    face_only: bool = False  # character runs: only the face portrait
 
 
 # ---------------- app ----------------
@@ -353,7 +383,8 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
             raise HTTPException(409, f"{body.name} already exists")
         d.mkdir(parents=True)
         save_character(paths, Character(name=body.name, display_name=body.display_name, prompt_block=body.prompt_block,
-                                        style=body.style or None))
+                                        outfit=body.outfit, style=body.style or None,
+                                        voice=Voice.model_validate(body.voice) if body.voice and body.voice.get("voice_id") else None))
         (d / "description.md").write_text(f"# {body.display_name or body.name}\n\nHuman notes (not sent to image models).\n", encoding="utf-8")
         return {"ok": True}
 
@@ -364,6 +395,8 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
             c.display_name = body.display_name
         if body.prompt_block is not None:
             c.prompt_block = body.prompt_block
+        if body.outfit is not None:
+            c.outfit = body.outfit
         if body.style is not None:
             check_style(body.style)
             c.style = body.style
@@ -377,9 +410,81 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         return {"ok": True}
 
     @app.post("/api/characters/{name}/sheets/{v}/{action}")
-    def sheet_action(name: str, v: str, action: Literal["approve", "unapprove", "discard"]):
-        fn = {"approve": C.approve, "unapprove": C.unapprove, "discard": C.discard}[action]
-        return {"file": fn(paths, name, parse_version(v))}
+    def sheet_action(name: str, v: str, action: Literal["approve", "unapprove", "discard", "reference"], look: str | None = None):
+        """reference = pin this sheet as the look's keyframe reference (approving it into the look if needed)."""
+        if action == "discard":
+            return {"file": C.discard(paths, name, parse_version(v))}
+        fn = {"approve": C.approve, "unapprove": C.unapprove, "reference": C.set_reference}[action]
+        return {"file": fn(paths, name, parse_version(v), look=look)}
+
+    @app.put("/api/characters/{name}/sheets/{v}/name")
+    def sheet_name(name: str, v: str, body: NameBody):
+        return {"file": C.name_sheet(paths, name, parse_version(v), body.name)}
+
+    @app.get("/api/projects/{p}/cast")
+    def get_cast(p: str):
+        folder = folder_of(p)
+        script = proj.load_script(folder) if (folder / "script.json").exists() else None
+        return {"cast": proj.load_project(folder).cast, "script_characters": script.characters if script else []}
+
+    @app.put("/api/projects/{p}/cast")
+    def put_cast(p: str, body: CastBody):
+        """Which characters are in this video and which look each wears (keyframes use that look's reference)."""
+        folder = folder_of(p)
+        cast = {}
+        for name, look in body.cast.items():
+            with_look(load_character(paths, name), look or DEFAULT_LOOK)  # UserError -> 400
+            cast[name] = look or DEFAULT_LOOK
+        project = proj.load_project(folder)
+        project.cast = cast
+        proj.save(folder / "project.json", project)
+        return {"ok": True}
+
+    @app.put("/api/characters/{name}/looks/{look}")
+    def put_look(name: str, look: str, body: LookBody):
+        """Create or update another look (outfit/build) of a character; its approved sheets are kept."""
+        if look == DEFAULT_LOOK or not NAME_RE.match(look):
+            raise HTTPException(400, "Look key: lowercase letters, digits, - or _ (e.g. anchor); 'default' is reserved")
+        if not body.outfit.strip():
+            raise HTTPException(400, "Outfit is empty")
+        if body.style:
+            check_style(body.style)
+        c = load_character(paths, name)
+        old = c.looks.get(look)
+        c.looks[look] = Look(label=body.label, outfit=body.outfit, style=body.style or None, use_face_ref=body.use_face_ref,
+                             approved_sheets=old.approved_sheets if old else [])
+        save_character(paths, c)
+        return {"ok": True}
+
+    @app.post("/api/characters/{name}/photo")
+    def upload_photo(name: str, body: PhotoBody):
+        """A real photo of the person becomes the character's face reference (sent with every sheet and keyframe)."""
+        if not body.consent:
+            raise HTTPException(400, "Confirm that the person agreed to their likeness being used")
+        load_character(paths, name)  # 400 if unknown
+        return {"file": C.add_photo(paths, name, body.filename, body.data)}
+
+    @app.delete("/api/characters/{name}/looks/{look}")
+    def delete_look(name: str, look: str):
+        """Remove a look. Its sheet files stay in the folder (and can be approved into another look)."""
+        c = load_character(paths, name)
+        if look not in c.looks:
+            raise HTTPException(404, f"{name} has no look {look!r}")
+        del c.looks[look]
+        save_character(paths, c)
+        return {"ok": True}
+
+    def check_looks(looks: dict[str, str], keep_default: bool = False) -> dict[str, str]:
+        """Validate a character -> look map. For the video, default entries are dropped (missing = default); a shot
+        keeps them, because "default" there overrides the video's look."""
+        out = {}
+        for name, look in looks.items():
+            if not look:
+                continue
+            with_look(load_character(paths, name), look)  # UserError -> 400
+            if keep_default or look != DEFAULT_LOOK:
+                out[name] = look
+        return out
 
     # ---------- shots & keyframes ----------
 
@@ -394,13 +499,12 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         fallback_style = script_style(paths, templates, script.characters) if script else None
         room = bool(sl.location_ref)
         out = []
+        cast = proj.load_project(folder).cast
         for s in sl.shots:
-            chars = []
-            for name in s.characters:
-                try:
-                    chars.append(load_character(paths, name))
-                except UserError:
-                    pass
+            try:
+                chars = shot_characters(paths, sl, s, cast)
+            except UserError:  # missing character or look: lint reports it; preview without people
+                chars = []
             lines = []
             if script:
                 for lid in s.line_ids:
@@ -408,16 +512,20 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
                         lines.append({"id": lid, "speaker": line.speaker, "text": line.subtitle})
             out.append({**s.model_dump(), "duration": s.duration, "lines": lines,
                         "prompt": compose_shot_prompt(templates, s, chars, fallback_style, location=room)})
-        return {"shots": out, "framings": list(templates.get("framings", {})), "location_ref": sl.location_ref}
+        return {"shots": out, "framings": list(templates.get("framings", {})), "location_ref": sl.location_ref,
+                "looks": {**sl.looks, **cast}}  # the video's looks: project cast (older shotlist-level choices underneath)
 
     @app.put("/api/projects/{p}/shotlist")
     def update_shotlist(p: str, body: ShotListUpdate):
         folder = folder_of(p)
         sl = proj.load_shotlist(folder)
-        ref = body.location_ref or None
-        if ref is not None and not (folder / ref).is_file():
-            raise HTTPException(400, f"{ref} not found in the project folder")
-        sl.location_ref = ref
+        if "location_ref" in body.model_fields_set or body.looks is None:
+            ref = body.location_ref or None
+            if ref is not None and not (folder / ref).is_file():
+                raise HTTPException(400, f"{ref} not found in the project folder")
+            sl.location_ref = ref
+        if body.looks is not None:
+            sl.looks = check_looks(body.looks)
         proj.save(folder / "shotlist.json", sl)
         return {"ok": True}
 
@@ -429,6 +537,8 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         if shot is None:
             raise HTTPException(404, f"No shot {shot_id}")
         data = shot.model_dump()
+        if body.looks is not None:
+            body.looks = check_looks(body.looks, keep_default=True)
         data.update({k: v for k, v in body.model_dump().items() if v is not None})
         sl.shots[sl.shots.index(shot)] = Shot.model_validate(data)
         proj.save(folder / "shotlist.json", sl)
@@ -480,7 +590,8 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
             if not req.name:
                 raise HTTPException(400, "name is required")
             return C.build(paths, req.name, n=req.n or int(cfg["characters"]["variants"]),
-                           model_key=req.model, use_approved=req.use_approved)
+                           model_key=req.model, use_approved=req.use_approved, look=req.look, face_first=req.face_first,
+                           face_only=req.face_only)
         if not req.project:
             raise HTTPException(400, "project is required")
         return K.build(paths, folder_of(req.project), shot_ids=req.shot_ids,
@@ -514,6 +625,8 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
         status = budget_status(plan.items, settings(), ledger)
         if status["blocked_reason"]:
             raise HTTPException(409, status["blocked_reason"])
+        if (busy := jobs.busy_with(plan.kind, plan.project)) is not None:
+            raise HTTPException(409, f"A {plan.kind} job for this project is already {busy.status} — wait for it or stop it first")
         hooks = {"keyframes": K.after_run, "clips": CL.after_run, "voice": lambda f: proj.set_stage(f, "voice", "in_progress")}
         on_done = (lambda pl: hooks[pl.kind](pl.folder)) if plan.kind in hooks else None
         return jobs.submit(plan, make_provider, on_done).public()
@@ -521,6 +634,13 @@ def create_app(root: Path | None = None, provider_factory: Callable[[], ImagePro
     @app.get("/api/jobs")
     def list_jobs():
         return {"jobs": [j.public() for j in jobs.list()]}
+
+    @app.post("/api/jobs/{job_id}/cancel")
+    def cancel_job(job_id: str):
+        job = jobs.cancel(job_id)
+        if job is None:
+            raise HTTPException(404, "No such job")
+        return job.public()
 
     @app.get("/api/jobs/{job_id}")
     def get_job(job_id: str):

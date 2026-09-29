@@ -1,0 +1,30 @@
+{
+  "file": "sheet_v16.png",
+  "created": "2026-09-29T13:25:24+00:00",
+  "stage": "character",
+  "project": "library",
+  "provider": "fal",
+  "model_key": "nano-banana",
+  "endpoint": "fal-ai/nano-banana/edit",
+  "request_id": "01a0ed57-43b0-7930-9935-852c7506f163",
+  "index_in_request": 0,
+  "seed": null,
+  "prompt": "photorealistic photograph of real people, natural skin texture, realistic proportions, natural light, 35mm lens, shallow depth of field, consistent appearance, not a cartoon, not an illustration, not anime, not a 3D render. Character turnaround sheet: the same single person shown three times side by side in one horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background. An East Asian man in his mid-30s to early 40s, with a rounded face shape and smooth fair skin. He has short, neatly styled black hair parted to one side with soft sweeping bangs across his forehead. He maintains a calm, neutral facial expression, with his lips closed in a relaxed, straight line and his dark brown eyes looking forward without expression lines or crinkles. He wears classic thin-rimmed metal glasses with clear, transparent lenses and a simple frame. He has neatly defined dark eyebrows, a soft nose with a rounded bridge, and a gentle jawline. Average build, average height. He wears a well-fitted dark navy suit jacket, buttoned, over a crisp white shirt with a plain dark navy tie, matching dark navy trousers, a black belt and polished black leather shoes. no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text. The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; ignore the clothes, pose and background of the reference and use the outfit and body described here.",
+  "reference_images": [
+    "/home/louistse/Projects/Parhelion/library/characters/smallpig/sheet_v11.jpg"
+  ],
+  "request": {
+    "prompt": "photorealistic photograph of real people, natural skin texture, realistic proportions, natural light, 35mm lens, shallow depth of field, consistent appearance, not a cartoon, not an illustration, not anime, not a 3D render. Character turnaround sheet: the same single person shown three times side by side in one horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background. An East Asian man in his mid-30s to early 40s, with a rounded face shape and smooth fair skin. He has short, neatly styled black hair parted to one side with soft sweeping bangs across his forehead. He maintains a calm, neutral facial expression, with his lips closed in a relaxed, straight line and his dark brown eyes looking forward without expression lines or crinkles. He wears classic thin-rimmed metal glasses with clear, transparent lenses and a simple frame. He has neatly defined dark eyebrows, a soft nose with a rounded bridge, and a gentle jawline. Average build, average height. He wears a well-fitted dark navy suit jacket, buttoned, over a crisp white shirt with a plain dark navy tie, matching dark navy trousers, a black belt and polished black leather shoes. no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text. The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; ignore the clothes, pose and background of the reference and use the outfit and body described here.",
+    "aspect_ratio": "16:9",
+    "output_format": "png",
+    "num_images": 1,
+    "image_urls": [
+      "/home/louistse/Projects/Parhelion/library/characters/smallpig/sheet_v11.jpg"
+    ]
+  },
+  "response_meta": {
+    "description": ""
+  },
+  "est_cost_usd": 0.0398,
+  "look": "anchor"
+}

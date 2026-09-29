@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from ..config import Paths, UserError
-from ..schemas import Character, Shot
+from ..schemas import DEFAULT_LOOK, Character, Shot, ShotList
 
 
 def character_dir(paths: Paths, name: str) -> Path:
@@ -31,6 +31,35 @@ def save_character(paths: Paths, char: Character) -> None:
     f.write_text(yaml.safe_dump(char.model_dump(), allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
+def with_look(char: Character, look: str | None) -> Character:
+    """The character as it appears in one look, ready for a prompt: prompt_block = the person + that look's outfit,
+    approved_sheets = that look's sheets. Face photo, style and voice are shared by every look."""
+    style, face = char.style, char.face_ref
+    if not look or look == DEFAULT_LOOK:
+        outfit, sheets, ref = char.outfit, char.approved_sheets, char.reference
+    elif look in char.looks:
+        lk = char.looks[look]
+        outfit, sheets, style, ref = lk.outfit, lk.approved_sheets, lk.style or char.style, lk.reference
+        face = char.face_ref if lk.use_face_ref else None
+    else:
+        known = ", ".join([DEFAULT_LOOK, *char.looks])
+        raise UserError(f"Character {char.name!r} has no look {look!r}. Looks: {known}")
+    text = "\n".join(p for p in (char.prompt_block.strip(), outfit.strip()) if p)  # plain_text makes them sentences
+    return char.model_copy(update={"prompt_block": text, "outfit": "", "approved_sheets": list(sheets),
+                                   "style": style, "face_ref": face, "reference": ref})
+
+
+def look_for(shotlist: ShotList, shot: Shot, name: str, cast: dict[str, str] | None = None) -> str:
+    """The look a character wears in a shot: the shot's override, else the video's cast (project.json), else the
+    older shotlist-level choice, else the main look."""
+    return shot.looks.get(name) or (cast or {}).get(name) or shotlist.looks.get(name) or DEFAULT_LOOK
+
+
+def shot_characters(paths: Paths, shotlist: ShotList, shot: Shot, cast: dict[str, str] | None = None) -> list[Character]:
+    """The shot's characters, each in the look it wears there (so prompt text, references and legend agree)."""
+    return [with_look(load_character(paths, c), look_for(shotlist, shot, c, cast)) for c in shot.characters]
+
+
 def approved_sheet_paths(paths: Paths, char: Character) -> list[Path]:
     return [character_dir(paths, char.name) / s for s in char.approved_sheets]
 
@@ -41,8 +70,8 @@ def reference_parts(char: Character) -> list[tuple[str, str]]:
     full-body sheet alone leaves the face too small (the model then invents it, e.g. older)."""
     parts = [(char.face_ref, "face close-up")] if char.face_ref else []
     sheets = [s for s in char.approved_sheets if s != char.face_ref]
-    if sheets:
-        parts.append((sheets[-1], "full body"))
+    if sheets:  # the pinned reference if it is still approved, else the most recently approved
+        parts.append((char.reference if char.reference in sheets else sheets[-1], "full body"))
     return parts
 
 
@@ -168,10 +197,26 @@ SHEET_FROM_REFERENCE = (
 )
 
 
+def sheet_style_text(templates: dict, key: str | None) -> str:
+    """Style words for a character sheet: `sheet_styles` when the style has an entry there, else the normal style."""
+    key = key or default_style(templates)
+    override = (templates.get("sheet_styles") or {}).get(key)
+    return _clean(override).rstrip(".") if override else style_text(templates, key)
+
+
+def compose_face_prompt(templates: dict, char: Character) -> str:
+    """A close-up portrait that becomes the face reference of a character whose face was only described."""
+    return _clean(templates["face_portrait"].format(
+        style=sheet_style_text(templates, style_key(templates, char)),
+        character=_sentence(plain_text(char.prompt_block)),
+        negative=_clean(templates["negative"]).rstrip("."),
+    ))
+
+
 def compose_character_prompt(templates: dict, char: Character, with_reference: bool = False) -> str:
     return _clean(
         templates["character_sheet"].format(
-            style=style_text(templates, style_key(templates, char)),
+            style=sheet_style_text(templates, style_key(templates, char)),
             character=_sentence(plain_text(char.prompt_block)),
             negative=_clean(templates["negative"]).rstrip("."),
         )

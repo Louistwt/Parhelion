@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
@@ -30,13 +30,26 @@ class PlannedJob:
     job: ImageJob
     unit_price: float
     unit: str = "image"
+    meta: dict = field(default_factory=dict)  # extra sidecar fields, e.g. {"look": "anchor"}
+    # Chained jobs (a face portrait, then a sheet that uses it): `prepare` runs just before the request and may fill in
+    # references; returning False skips the job (no spend). `on_saved` gets the saved files.
+    prepare: Callable[["PlannedJob"], bool] | None = None
+    on_saved: Callable[[list[Path]], None] | None = None
 
     @property
     def estimate(self) -> EstimateItem:
         return EstimateItem(self.label, self.endpoint, self.job.num_images, self.unit, self.unit_price)
 
     def execute(self, provider, ledger: Ledger, *, project: str, stage: str, on_progress: "Progress" = None) -> list[Path]:
-        return run(self, provider, ledger, project=project, stage=stage, on_progress=on_progress or _noop)
+        on_progress = on_progress or _noop
+        if self.prepare is not None and self.prepare(self) is False:
+            on_progress("failed", f"{self.label}: skipped — the step it depends on did not produce an image (no spend)",
+                        {"label": self.label, "error": "skipped"})
+            return []
+        saved = run(self, provider, ledger, project=project, stage=stage, on_progress=on_progress)
+        if saved and self.on_saved is not None:
+            self.on_saved(saved)
+        return saved
 
 
 def run(
@@ -86,6 +99,7 @@ def run(
             "request": result.request_payload,
             "response_meta": result.raw_response,
             "est_cost_usd": planned.unit_price,
+            **planned.meta,
         }
         path.with_suffix(".json").write_text(json.dumps(sidecar, ensure_ascii=False, indent=2), encoding="utf-8")
         saved.append(path)

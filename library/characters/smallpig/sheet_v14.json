@@ -1,0 +1,33 @@
+{
+  "file": "sheet_v14.jpg",
+  "created": "2026-09-29T12:58:45+00:00",
+  "stage": "character",
+  "project": "library",
+  "provider": "fal",
+  "model_key": "seedream-v4",
+  "endpoint": "fal-ai/bytedance/seedream/v4/edit",
+  "request_id": "01a0ed3e-abb7-77e1-a6c9-184dafd0f214",
+  "index_in_request": 0,
+  "seed": 899264832,
+  "prompt": "photorealistic photograph of real people, natural skin texture, realistic proportions, natural light, 35mm lens, shallow depth of field, background softly out of focus, candid documentary photo, lived-in real environment with small imperfections, consistent appearance, not a cartoon, not an illustration, not anime, not a 3D render, no CGI look. Character turnaround sheet: the same single person shown three times side by side in one horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background. An East Asian man in his mid-30s to early 40s, with a rounded face shape and smooth fair skin. He has short, neatly styled black hair parted to one side with soft sweeping bangs across his forehead. He maintains a calm, neutral facial expression, with his lips closed in a relaxed, straight line and his dark brown eyes looking forward without expression lines or crinkles. He wears classic thin-rimmed metal glasses with clear, transparent lenses and a simple frame. He has neatly defined dark eyebrows, a soft nose with a rounded bridge, and a gentle jawline. Average build, average height. He wears a well-fitted dark navy suit jacket, buttoned, over a crisp white shirt with a plain dark navy tie, matching dark navy trousers, a black belt and polished black leather shoes. no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text. The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; ignore the clothes, pose and background of the reference and use the outfit and body described here.",
+  "reference_images": [
+    "/home/louistse/Projects/Parhelion/library/characters/smallpig/sheet_v11.jpg"
+  ],
+  "request": {
+    "prompt": "photorealistic photograph of real people, natural skin texture, realistic proportions, natural light, 35mm lens, shallow depth of field, background softly out of focus, candid documentary photo, lived-in real environment with small imperfections, consistent appearance, not a cartoon, not an illustration, not anime, not a 3D render, no CGI look. Character turnaround sheet: the same single person shown three times side by side in one horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background. An East Asian man in his mid-30s to early 40s, with a rounded face shape and smooth fair skin. He has short, neatly styled black hair parted to one side with soft sweeping bangs across his forehead. He maintains a calm, neutral facial expression, with his lips closed in a relaxed, straight line and his dark brown eyes looking forward without expression lines or crinkles. He wears classic thin-rimmed metal glasses with clear, transparent lenses and a simple frame. He has neatly defined dark eyebrows, a soft nose with a rounded bridge, and a gentle jawline. Average build, average height. He wears a well-fitted dark navy suit jacket, buttoned, over a crisp white shirt with a plain dark navy tie, matching dark navy trousers, a black belt and polished black leather shoes. no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text. The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; ignore the clothes, pose and background of the reference and use the outfit and body described here.",
+    "image_size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "enable_safety_checker": true,
+    "num_images": 1,
+    "image_urls": [
+      "/home/louistse/Projects/Parhelion/library/characters/smallpig/sheet_v11.jpg"
+    ]
+  },
+  "response_meta": {
+    "seed": 899264832
+  },
+  "est_cost_usd": 0.03,
+  "look": "anchor"
+}

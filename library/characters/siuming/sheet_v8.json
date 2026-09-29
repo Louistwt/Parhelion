@@ -1,0 +1,29 @@
+{
+  "file": "sheet_v8.png",
+  "created": "2026-09-29T13:42:59+00:00",
+  "stage": "character",
+  "project": "library",
+  "provider": "fal",
+  "model_key": "nano-banana",
+  "endpoint": "fal-ai/nano-banana/edit",
+  "request_id": "01a0ed67-5ba3-7592-b7f0-b3da241e266b",
+  "index_in_request": 0,
+  "seed": null,
+  "prompt": "photorealistic photograph of real people, natural skin texture, realistic proportions, natural light, 35mm lens, shallow depth of field, consistent appearance, not a cartoon, not an illustration, not anime, not a 3D render. Character turnaround sheet: the same single person shown three times side by side in one horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background. A Chinese man in his late 40s, heavy-set build, average height, round full face with prominent cheeks and a soft jawline, neutral expression. He wears a plain white T-shirt under an open charcoal-grey knit cardigan, dark jeans, black casual shoes. no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text. The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; ignore the clothes, pose and background of the reference and use the outfit and body described here.",
+  "reference_images": [
+    "/home/louistse/Projects/Parhelion/library/characters/siuming/sheet_v7.jpg"
+  ],
+  "request": {
+    "prompt": "photorealistic photograph of real people, natural skin texture, realistic proportions, natural light, 35mm lens, shallow depth of field, consistent appearance, not a cartoon, not an illustration, not anime, not a 3D render. Character turnaround sheet: the same single person shown three times side by side in one horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to shoes, feet visible, same size, evenly spaced, neutral standing pose, plain light grey studio background. A Chinese man in his late 40s, heavy-set build, average height, round full face with prominent cheeks and a soft jawline, neutral expression. He wears a plain white T-shirt under an open charcoal-grey knit cardigan, dark jeans, black casual shoes. no text, no letters, no captions, no watermark, no logos, no subtitles, no signage text. The reference image shows this person. Keep the face, hairstyle and glasses exactly as in the reference; ignore the clothes, pose and background of the reference and use the outfit and body described here.",
+    "aspect_ratio": "16:9",
+    "output_format": "png",
+    "num_images": 1,
+    "image_urls": [
+      "/home/louistse/Projects/Parhelion/library/characters/siuming/sheet_v7.jpg"
+    ]
+  },
+  "response_meta": {
+    "description": ""
+  },
+  "est_cost_usd": 0.0398
+}

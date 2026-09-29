@@ -1,0 +1,19 @@
+name: siuming
+display_name: 小晶
+prompt_block: A Chinese man in his late 40s, heavy-set build, average height, round
+  full face with prominent cheeks and a soft jawline, neutral expression.
+outfit: He wears a plain white T-shirt under an open charcoal-grey knit cardigan,
+  dark jeans, black casual shoes.
+style: realistic
+face_ref: sheet_v7.jpg
+approved_sheets:
+- sheet_v7.jpg
+- sheet_v8.png
+reference: null
+sheet_names: {}
+voice:
+  voice_id: Chinese (Mandarin)_Sincere_Adult
+  speed: 1.0
+  pitch: 0
+  emotion: null
+looks: {}

@@ -92,6 +92,9 @@ regenerate only rejected shots.
   - Motion prompts never say speaking/talking unless `on_camera_speech` is true, or the video model moves the mouth out of sync (lint warns).
   - One location description, reused word for word in every shot, with lived-in details (desk clutter, paperwork trays, a plant, worn chairs); ask the humans to set the **Room reference** once a wide shot is approved.
   - When age matters, the look text says so explicitly (e.g. "smooth skin, no wrinkles").
+- **Character workflow** (Characters page → New character): name → **face** (upload a photo of a real person *with their consent*, or describe it) → **voice** (pick from the catalog; voice upload/cloning is not built yet) → **outfit & style** → one Generate at the end. A described face is generated first as a face portrait that becomes `face_ref` (`--face-first`), so every later image keeps that face. Reuse a character in other genres with looks that have their own `style` (e.g. `cartoon3d`) and `use_face_ref: false` (a real photo pulls a cartoon look back to photoreal).
+- **Which image a video uses:** each project has a **cast** (`project.json` `cast`: character → look, Brief tab → Cast); a shot can override it (`shotlist.json` shot `looks`). Keyframes send that look's **reference**: the sheet pinned with "Use as … reference" (`reference` in `character.yaml` / the look), else its most recently approved sheet. Images can be given human names (`sheet_names`); files are never renamed (versions, sidecars and approvals point at them).
+- **Person + outfit:** `prompt_block` describes the **person** (age, face, hair, glasses, build — no clothes) and `outfit` the main look's clothes. **Looks** (`character.yaml` `looks:` → `label`, `outfit`, `approved_sheets`) change only the outfit (and build, if different); the top-level `outfit` + `approved_sheets` are the main look (`default`). All looks share the person text, face photo, style and voice. A **face photo** of a real person (uploaded on the Characters page, only with their consent, recorded in the sidecar and `description.md`) becomes `face_ref` and is **sent on every sheet run**, refine or not. A video picks each character's look in `shotlist.json` `looks` (Shots tab), and a shot may override it in its own `looks`; keyframes then send that look's text and latest sheet. Generate a look's sheet with `parhelion character <name> --look <key> --use-approved` (face reference + that look's sheets).
 - Look text (`prompt_block`) is appearance only: no expressions. Mood and expressions go in each shot's `setting` / `action`. Say what a character does *not* have when it matters (e.g. "no glasses").
 - **Style is chosen per character** (`character.yaml` `style:` → a key under `styles:` in `prompt_templates.yaml`, e.g. `cartoon`, `realistic`; human choice, set on the Characters page). Shots use their characters' style; shots with nobody in frame use the style of the script's characters. One style per video (lint errors on a mixed shot, warns on a mixed script).
 - Character sheets are generated landscape (`sheet_params` in `config/models.yaml`) so the three full-body views fit in one row. Write `prompt_block` as plain sentences: age, ethnicity, build, hair, full outfit down to the shoes (markdown is flattened, but headings are dropped).
@@ -128,11 +131,11 @@ Deterministic, no AI. Run before every checkpoint.
 
 `shotlist.json`:
 ```json
-{ "shots": [{
+{ "location_ref": null, "looks": {"smallpig": "anchor"}, "shots": [{
   "id": "S01", "start": 0.0, "end": 4.2, "line_ids": ["L01"],
   "framing": "medium close-up", "characters": ["zhangshu"], "props": ["teacup"],
   "setting": "", "action": "", "on_camera_speech": false, "notes": "",
-  "motion_prompt": "", "camera": "", "approved_keyframe": null, "approved_clip": null
+  "motion_prompt": "", "camera": "", "approved_keyframe": null, "approved_clip": null, "looks": {}
 }]}
 ```
 
@@ -214,5 +217,6 @@ npm run dev                             # (repo root) API + UI with hot reload a
 
 ## Session habits
 
+- **Work in the main codebase folder `~/Projects/Parhelion`**, on whatever branch is checked out there (today `main`; side branches come later). Never edit files, create projects or keep work inside `.claude/worktrees/`. If a session starts inside a worktree, say so before changing anything: project media (`projects/`, `library/characters/`) only exists in the main folder.
 - Start: read STATE.md, summarise where we are, propose the next step, wait for my go-ahead on anything that spends money.
 - End: update STATE.md (done, decisions, open questions, next steps, verified model facts).

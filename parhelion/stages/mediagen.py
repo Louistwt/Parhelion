@@ -31,10 +31,11 @@ class MediaJob:
     files: dict[str, Path] = field(default_factory=dict)  # payload field -> local file to upload
     meta: dict = field(default_factory=dict)  # stored in the sidecar (line_id, shot_id, durations…)
     prepare: Callable[[], dict[str, Path]] | None = None  # builds input files at run time (keeps planning side-effect free)
+    minimum: float = 0.0  # per-request minimum charge (prices.yaml `minimum_per_request`)
 
     @property
     def estimate(self) -> EstimateItem:
-        return EstimateItem(self.label, self.endpoint, round(self.units, 4), self.unit, self.unit_price)
+        return EstimateItem(self.label, self.endpoint, round(self.units, 4), self.unit, self.unit_price, self.minimum)
 
     def execute(self, provider, ledger: Ledger, *, project: str, stage: str, on_progress: Progress = _noop) -> list[Path]:
         """Run one request. Never raises on provider failure: logs it and returns []."""

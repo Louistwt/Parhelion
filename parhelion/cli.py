@@ -164,6 +164,8 @@ def character(
     seed: Optional[int] = typer.Option(None, "--seed"),
     approve: Optional[str] = typer.Option(None, "--approve", help="Approve sheet version, e.g. v2 (no spend)"),
     discard: Optional[str] = typer.Option(None, "--discard", help="Move a sheet you don't want to discarded/, e.g. v3"),
+    look: Optional[str] = typer.Option(None, "--look", help="Look (outfit) to generate or approve into, e.g. anchor (default: the main look)"),
+    face_first: bool = typer.Option(False, "--face-first", help="Generate a face portrait first and use it as the face reference"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     yes: bool = typer.Option(False, "--yes", "-y"),
 ):
@@ -172,16 +174,17 @@ def character(
 
     paths, settings = _ctx()
     if approve:
-        f = C.approve(paths, name, parse_version(approve))
-        typer.echo(f"Approved {name}/{f} as reference sheet.")
+        f = C.approve(paths, name, parse_version(approve), look=look)
+        typer.echo(f"Approved {name}/{f} as reference sheet" + (f" for look {look!r}." if look else "."))
         return
     if discard:
         f = C.discard(paths, name, parse_version(discard))
         typer.echo(f"Moved {name}/{f} to {name}/discarded/.")
         return
     n = n or int(pipeline_cfg(paths.root)["characters"]["variants"])
-    plan = C.build(paths, name, n=n, model_key=model, use_approved=use_approved, seed=seed)
-    typer.echo(f"Prompt: {plan.jobs[0].job.prompt}")
+    plan = C.build(paths, name, n=n, model_key=model, use_approved=use_approved, seed=seed, look=look, face_first=face_first)
+    for j in plan.jobs:
+        typer.echo(f"Prompt ({j.label}): {j.job.prompt}")
     _run_plan(paths, settings, plan, yes=yes, dry_run=dry_run)
 
 

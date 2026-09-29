@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { StatusBar } from "./components/StatusBar";
 import "./i18n";
 import { JobsProvider } from "./jobs";
-import { Characters } from "./pages/Characters";
+import { CharacterPage, Characters } from "./pages/Characters";
 import { Costs } from "./pages/Costs";
 import { Home } from "./pages/Home";
 import { Project } from "./pages/Project";
@@ -89,6 +89,7 @@ function Layout() {
             <Route path="/p/:id" element={<Project />} />
             <Route path="/p/:id/:tab" element={<Project />} />
             <Route path="/characters" element={<Characters />} />
+            <Route path="/characters/:name" element={<CharacterPage />} />
             <Route path="/costs" element={<Costs />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFound />} />

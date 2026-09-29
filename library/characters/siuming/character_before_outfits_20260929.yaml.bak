@@ -1,0 +1,16 @@
+name: siuming
+display_name: 小明
+prompt_block: A Chinese man in his late 30s, heavy-set build, average height, round
+  full face with prominent cheeks and a soft jawline, dark expressive eyes, natural
+  dark eyebrows, short dark hair styled upward with tapered sides, broad nose, thin
+  neatly trimmed mustache and no beard, no glasses, neutral expression, wearing a
+  plain white T-shirt under an open charcoal-grey knit cardigan, dark jeans, black
+  casual shoes.
+style: realistic
+approved_sheets:
+- sheet_v6.jpg
+voice:
+  voice_id: Chinese (Mandarin)_Sincere_Adult
+  speed: 1.0
+  pitch: 0
+  emotion: null

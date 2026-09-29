@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 from ..cost import EstimateItem, Ledger
 from ..providers.base import ImageProvider
@@ -25,9 +26,16 @@ class RunPlan:
         return [j.estimate for j in self.jobs]
 
 
-def execute(plan: RunPlan, provider: ImageProvider, ledger: Ledger, on_progress: Progress = _noop) -> dict[str, list[Path]]:
-    """Run every planned request in order. Failures are logged and skipped, never raised."""
+def execute(
+    plan: RunPlan, provider: ImageProvider, ledger: Ledger, on_progress: Progress = _noop,
+    should_stop: Callable[[], bool] | None = None,
+) -> dict[str, list[Path]]:
+    """Run every planned request in order. Failures are logged and skipped, never raised. `should_stop` is checked
+    before each request (a request already sent to the provider can't be recalled)."""
     results: dict[str, list[Path]] = {}
     for job in plan.jobs:
+        if should_stop is not None and should_stop():
+            on_progress("cancelled", f"{job.label}: not sent — job stopped", {"label": job.label})
+            continue
         results[job.label] = job.execute(provider, ledger, project=plan.project, stage=plan.stage, on_progress=on_progress)
     return results

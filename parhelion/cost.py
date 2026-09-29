@@ -28,10 +28,11 @@ class EstimateItem:
     units: float
     unit: str
     unit_price: float
+    minimum: float = 0.0  # per-request minimum charge (prices.yaml `minimum_per_request`), e.g. LatentSync $0.20
 
     @property
     def cost(self) -> float:
-        return round(self.units * self.unit_price, 4)
+        return round(max(self.units * self.unit_price, self.minimum), 4)
 
 
 def unit_price(price_table: dict, endpoint: str) -> tuple[float, str]:
@@ -41,6 +42,11 @@ def unit_price(price_table: dict, endpoint: str) -> tuple[float, str]:
             f"No price for {endpoint!r} in config/prices.yaml — add it before spending money."
         )
     return float(entry["unit_price"]), entry.get("unit", "image")
+
+
+def request_minimum(price_table: dict, endpoint: str) -> float:
+    """Some endpoints charge a flat minimum per request (the pricing API only reports the per-unit rate)."""
+    return float((price_table.get(endpoint) or {}).get("minimum_per_request") or 0.0)
 
 
 def estimate(price_table: dict, label: str, endpoint: str, units: float) -> EstimateItem:

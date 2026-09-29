@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "../../api";
+import { CastCard } from "../../components/CastCard";
 import { ErrorBox, Loading } from "../../components/common";
 
 export function BriefTab({ id }: { id: string }) {
@@ -47,7 +48,9 @@ export function BriefTab({ id }: { id: string }) {
           <ErrorBox error={save.error} />
         </CardContent>
       </Card>
-      <Card className="self-start">
+      <div className="flex flex-col gap-4 self-start">
+      <CastCard id={id} />
+      <Card>
         <CardHeader><CardTitle>{t("brief.guide.title")}</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
           <p>{t("brief.guide.intro")}</p>
@@ -61,6 +64,7 @@ export function BriefTab({ id }: { id: string }) {
           <p><Trans i18nKey="brief.guide.history" components={{ code: <code />, kbd: <kbd className="kbd" /> }} /></p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

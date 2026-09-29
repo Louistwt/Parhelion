@@ -14,6 +14,19 @@ styles:
     natural light, 35mm lens, shallow depth of field, background softly out of focus,
     candid documentary photo, lived-in real environment with small imperfections, consistent appearance,
     not a cartoon, not an illustration, not anime, not a 3D render, no CGI look
+  # Draft (2026-09-29) matching 小朱's cartoon look (smallpig sheet_v14); wording is a human choice.
+  cartoon3d: >-
+    3D animated film still, stylised characters with smooth skin and slightly large heads,
+    soft studio lighting, clean simple shapes, consistent character design
+
+# Character sheets use this wording instead of `styles:` when a style is listed here. The keyframe wording above
+# (candid, lived-in background, "no CGI look") turned 小朱's grey-studio turnaround sheets into 3D toys on Seedream
+# (sheet_v13, sheet_v14, 2026-09-29); this older wording gave photoreal sheets (smallpig sheet_v12, siuming v5/v6).
+sheet_styles:
+  realistic: >-
+    photorealistic photograph of real people, natural skin texture, realistic proportions,
+    natural light, 35mm lens, shallow depth of field, consistent appearance,
+    not a cartoon, not an illustration, not anime, not a 3D render
 
 # Must appear in every image prompt (lint checks for it).
 negative: >-
@@ -34,6 +47,13 @@ shot: >-
 
 # Placeholders: {style} {character} {negative}
 # Sheets are generated landscape (models.yaml `sheet_params`) so the three views fit in one row.
+# A face portrait for a character whose face is only described: once approved it is the face reference, so every
+# later sheet and keyframe keeps the same face. Placeholders: {style} {character} {negative}.
+face_portrait: >-
+  {style}. Close-up head-and-shoulders portrait of one person facing the camera, neutral expression, even soft
+  light, plain light grey background.
+  {character} {negative}.
+
 character_sheet: >-
   {style}. Character turnaround sheet: the same single person shown three times side by side in one
   horizontal row, left to right: front view, three-quarter view, side profile. Full body from head to

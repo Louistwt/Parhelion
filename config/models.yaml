@@ -16,6 +16,8 @@ image:
       enable_safety_checker: true
     sheet_params:               # 2026-09-27: custom size OK if total pixels are between 960x960 and 4096x4096
       image_size: {width: 1920, height: 1080}
+    face_params:                # face portraits (square); enum value verified 2026-09-27
+      image_size: square_hd
 
   - key: nano-banana
     provider: fal
@@ -27,6 +29,8 @@ image:
       output_format: png
     sheet_params:
       aspect_ratio: "16:9"      # 2026-09-27: allowed values 21:9 16:9 3:2 4:3 5:4 1:1 4:5 3:4 2:3 9:16
+    face_params:
+      aspect_ratio: "1:1"
 
   - key: flux-kontext-pro
     provider: fal
@@ -37,6 +41,8 @@ image:
       aspect_ratio: "9:16"
     sheet_params:
       aspect_ratio: "16:9"      # 2026-09-27: allowed values 21:9 16:9 4:3 3:2 1:1 2:3 3:4 9:16 9:21
+    face_params:
+      aspect_ratio: "1:1"
 
 # ---------- voice (TTS) ----------
 # language_boost: mandarin -> "Chinese", cantonese -> "Chinese,Yue". Voices are set per character (character.yaml)

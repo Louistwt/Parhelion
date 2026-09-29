@@ -65,8 +65,10 @@ fal-ai/minimax/hailuo-02/standard/image-to-video:
 fal-ai/latentsync:
   unit: seconds
   unit_price: 0.005
-  source: https://api.fal.ai/v1/models/pricing (parhelion prices check)
-  verified: 2026-09-24
+  minimum_per_request: 0.20   # "$0.2 for videos up to 40 seconds", then $0.005/s (fal model page, 2026-09-29);
+                              # the pricing API only reports the per-second rate. Confirmed by billing: 3 × $0.20.
+  source: https://fal.ai/models/fal-ai/latentsync + https://api.fal.ai/v1/models/pricing
+  verified: 2026-09-29
 fal-ai/kling-video/lipsync/audio-to-video:
   unit: units            # fal does not document what one unit is; we assume 1 unit per 5 s (estimate only)
   unit_price: 0.014

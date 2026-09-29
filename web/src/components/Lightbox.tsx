@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Kbd } from "./common";
 
 /** Full-screen compare view. ←/→ move focus, Enter approves, Esc closes. Optional Discard hides an unwanted image. */
-export function Lightbox({ title, images, approved, start = 0, onApprove, onDiscard, extra, onClose }: {
+export function Lightbox({ title, images, approved, start = 0, onApprove, onDiscard, extra, caption, onClose }: {
   title: string;
   images: { src: string; name: string }[];
   approved: string[];
@@ -14,6 +14,7 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onDisc
   onApprove: (name: string) => void;
   onDiscard?: (name: string) => void;
   extra?: (name: string) => React.ReactNode;
+  caption?: (name: string) => string; // shown under each image instead of the file name
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -81,7 +82,7 @@ export function Lightbox({ title, images, approved, start = 0, onApprove, onDisc
                 compare && im.i === focus && "ring-2 ring-primary ring-offset-2 ring-offset-black",
               )}
             />
-            <figcaption className="text-xs text-muted-foreground">{im.name}{approved.includes(im.name) ? ` · ${t("panels.lightbox.approvedTag")}` : ""}</figcaption>
+            <figcaption className="text-xs text-muted-foreground">{caption ? caption(im.name) : im.name}{approved.includes(im.name) ? ` · ${t("panels.lightbox.approvedTag")}` : ""}</figcaption>
           </figure>
         ))}
       </div>

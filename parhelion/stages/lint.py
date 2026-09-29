@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from .. import project as proj
 from ..config import Paths, UserError
 from ..schemas import Character, Script, ShotList, Timing
-from .prompts import compose_shot_prompt, load_character, script_style, style_key, style_text
+from .prompts import compose_shot_prompt, load_character, look_for, script_style, style_key, style_text, with_look
 from .timing import estimate, speech_chars
 
 TODO_MARKERS = ("[TODO", "[todo", "【TODO")
@@ -138,6 +139,7 @@ def lint_shotlist(
         issues.append(Issue("error", dup, "duplicate shot id"))
 
     char_cache: dict[str, Character | None] = {}
+    cast = proj.load_project(folder).cast if folder is not None and (folder / "project.json").exists() else {}
 
     def get_char(name: str) -> Character | None:
         if name not in char_cache:
@@ -151,6 +153,10 @@ def lint_shotlist(
     script_styles: dict[str, list[str]] = {}
     for name in script.characters:
         if (c := get_char(name)) is not None:
+            try:  # the look this video uses may have its own style (e.g. a cartoon version)
+                c = with_look(c, cast.get(name) or shotlist.looks.get(name))
+            except UserError:
+                pass  # reported per shot
             script_styles.setdefault(style_key(templates, c), []).append(name)
     for key, names in script_styles.items():
         try:
@@ -213,9 +219,15 @@ def lint_shotlist(
             if c is None:
                 issues.append(Issue("error", w, f"character {name!r} not found in library"))
             else:
+                look = look_for(shotlist, shot, name, cast)
+                try:
+                    c = with_look(c, look)
+                except UserError as e:
+                    issues.append(Issue("error", w, str(e)))
                 chars.append(c)
                 if not c.approved_sheets:
-                    issues.append(Issue("warn", w, f"{name!r} has no approved sheet — no reference image will be sent"))
+                    what = f"{name!r}" + (f" (look {look!r})" if look != "default" else "")
+                    issues.append(Issue("warn", w, f"{what} has no approved sheet — no reference image will be sent"))
         shot_styles = sorted({style_key(templates, c) for c in chars})
         if len(shot_styles) > 1:
             issues.append(Issue("error", w, f"characters in one shot use different styles: {', '.join(shot_styles)}"))

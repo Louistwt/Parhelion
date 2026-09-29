@@ -75,7 +75,7 @@ def build(paths: Paths, folder: Path, *, shot_ids: list[str] | None, n: int, mod
             jobs.append(MediaJob(
                 label=f"{s.id} clip" + (f" #{i + 1}" if n > 1 else ""), out_dir=folder / "clips", stem=s.id,
                 endpoint=model["endpoint"], model_key=model["key"], payload=payload, expect="video", ext=".mp4",
-                units=billing_units(entry, unit, seconds), unit=unit, unit_price=price,
+                units=billing_units(entry, unit, seconds), unit=unit, unit_price=price, minimum=float(entry.get("minimum_per_request") or 0),
                 files={"image_url": folder / "keyframes" / s.approved_keyframe},
                 meta={"shot_id": s.id, "keyframe": s.approved_keyframe, "shot_seconds": s.duration, "generated_seconds": seconds},
             ))
@@ -172,7 +172,7 @@ def build_lipsync(paths: Paths, folder: Path, *, shot_ids: list[str] | None, mod
         jobs.append(MediaJob(
             label=f"{s.id} lip-sync", out_dir=folder / "clips", stem=f"{s.id}_lipsync", endpoint=model["endpoint"],
             model_key=model["key"], payload=dict(model.get("params", {})), expect="video", ext=".mp4",
-            units=billing_units(entry, unit, s.duration), unit=unit, unit_price=price,
+            units=billing_units(entry, unit, s.duration), unit=unit, unit_price=price, minimum=float(entry.get("minimum_per_request") or 0),
             prepare=(lambda shot=s: dict(zip(("video_url", "audio_url"), _segment_inputs(paths, folder, shot)))),
             meta={"shot_id": s.id, "source_clip": s.approved_clip, "shot_seconds": s.duration},
         ))

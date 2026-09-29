@@ -24,7 +24,8 @@ class Job:
     project: str
     labels: list[str]
     estimate: float
-    status: str = "queued"  # queued | running | done | failed | blocked
+    status: str = "queued"  # queued | running | done | failed | blocked | cancelled
+    stop_requested: bool = False  # Stop pressed while running: finish the request in flight, send no more
     created: str = field(default_factory=utcnow)
     finished: str | None = None
     events: list[dict] = field(default_factory=list)
@@ -37,7 +38,7 @@ class Job:
             "id": self.id, "kind": self.kind, "project": self.project, "labels": self.labels,
             "estimate": self.estimate, "status": self.status, "created": self.created, "finished": self.finished,
             "progress": {"done": done, "total": len(self.labels)},
-            "events": self.events[-200:], "files": self.files, "error": self.error,
+            "events": self.events[-200:], "files": self.files, "error": self.error, "stopping": self.stop_requested,
         }
 
 
@@ -68,6 +69,24 @@ class JobManager:
         with self.lock:
             return sorted(self.jobs.values(), key=lambda j: j.created, reverse=True)
 
+    def cancel(self, job_id: str) -> Job | None:
+        """Stop a job: a queued one never runs; a running one sends no further requests (the one in flight finishes)."""
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if job is None:
+                return None
+            if job.status == "queued":
+                job.status, job.finished = "cancelled", utcnow()
+            elif job.status == "running":
+                job.stop_requested = True
+            return job
+
+    def busy_with(self, kind: str, project: str) -> Job | None:
+        """A queued or running job of the same kind for the same project (so a double click doesn't pay twice)."""
+        with self.lock:
+            return next((j for j in self.jobs.values() if j.kind == kind and j.project == project
+                         and j.status in ("queued", "running")), None)
+
     def active(self) -> bool:
         with self.lock:
             return any(j.status in ("queued", "running") for j in self.jobs.values())
@@ -81,6 +100,10 @@ class JobManager:
     def _work(self) -> None:
         while True:
             job, plan, provider_factory, on_done = self.q.get()
+            if job.status == "cancelled":  # stopped while queued: nothing was sent
+                self._persist(job)
+                self.q.task_done()
+                continue
             try:
                 # Re-check the budget right before spending: queued jobs may add up.
                 status = budget_status(plan.items, self.settings_loader(), self.ledger)
@@ -89,11 +112,15 @@ class JobManager:
                     continue
                 job.status = "running"
                 provider = provider_factory()
-                execute(plan, provider, self.ledger, on_progress=lambda e, m, d: self._event(job, e, m, d))
+                execute(plan, provider, self.ledger, on_progress=lambda e, m, d: self._event(job, e, m, d),
+                        should_stop=lambda: job.stop_requested)
                 if on_done:
                     on_done(plan)
                 failed = sum(1 for e in job.events if e["event"] == "failed")
-                job.status = "failed" if failed == len(plan.jobs) else "done"
+                if job.stop_requested:
+                    job.status = "cancelled"
+                else:
+                    job.status = "failed" if failed == len(plan.jobs) else "done"
             except Exception as e:  # never kill the worker
                 job.status, job.error = "failed", str(e)[:500]
             finally:

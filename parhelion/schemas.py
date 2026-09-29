@@ -99,6 +99,7 @@ class Shot(BaseModel):
     camera: str = ""  # simple camera move for image-to-video, e.g. "slow push in"
     approved_keyframe: str | None = None
     approved_clip: str | None = None
+    looks: dict[str, str] = {}  # character -> look for this shot only (overrides ShotList.looks)
 
     @property
     def duration(self) -> float:
@@ -107,6 +108,7 @@ class Shot(BaseModel):
 
 class ShotList(BaseModel):
     location_ref: str | None = None  # image of the room (path relative to the project folder), sent with every keyframe
+    looks: dict[str, str] = {}  # character -> look used in this video (missing = the default look)
     shots: list[Shot] = []
 
     def shot(self, shot_id: str) -> Shot | None:
@@ -143,6 +145,7 @@ class Project(BaseModel):
     )
     approvals: list[Approval] = []
     models: dict[str, str] = {}
+    cast: dict[str, str] = {}  # character -> look used in this video ("default" = main look); a shot may override
 
 
 # ---------- characters ----------
@@ -155,14 +158,32 @@ class Voice(BaseModel):
     emotion: str | None = None
 
 
+DEFAULT_LOOK = "default"
+
+
+class Look(BaseModel):
+    """Another outfit (and build, if different) of the same person: its own outfit text and sheets; the person text,
+    face photo, style and voice are shared."""
+    label: str = ""  # shown in the UI, e.g. 主播
+    outfit: str = ""
+    style: str | None = None  # a style for this look only (e.g. a cartoon version); None = the character's style
+    use_face_ref: bool = True  # send the character's face photo with this look (off for a different-style look)
+    approved_sheets: list[str] = []
+    reference: str | None = None  # the approved sheet keyframes use (None = the most recently approved)
+
+
 class Character(BaseModel):
     name: str
     display_name: str = ""
-    prompt_block: str
+    prompt_block: str  # the person: age, face, hair, glasses, build (shared by every look); no clothes when `outfit` is set
+    outfit: str = ""  # the main look's clothes (empty = prompt_block already describes them, as in older characters)
     style: str | None = None  # key in prompt_templates.yaml `styles`; None = default_style
     face_ref: str | None = None  # a close-up / portrait image in the character folder, sent with keyframes
-    approved_sheets: list[str] = []
+    approved_sheets: list[str] = []  # the main (default) look's sheets
+    reference: str | None = None  # the main look's reference sheet (None = the most recently approved)
+    sheet_names: dict[str, str] = {}  # file -> a human name shown in the UI (files are never renamed)
     voice: Voice | None = None
+    looks: dict[str, Look] = {}  # other looks by key; "default" is reserved for the top-level fields
 
 
 # ---------- cost ledger ----------

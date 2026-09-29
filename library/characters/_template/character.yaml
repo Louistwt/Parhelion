@@ -1,13 +1,27 @@
 # Copy this folder to library/characters/<name>/ and fill in.
 name: example
 display_name: 示例
-# Visual description used verbatim in prompts. Describe look only (age, build, hair,
-# clothes, colours, distinctive props). Humans approve this text.
+# The person, used in every look: age, ethnicity, build, face, hair, glasses. No clothes. Humans approve this text.
 prompt_block: >-
-  A Chinese man in his 30s, slim build, short black hair, round glasses, light blue shirt,
-  dark trousers, black leather shoes.
+  A Chinese man in his 30s, slim build, short black hair, round glasses.
+# The main look's clothes, down to the shoes.
+outfit: >-
+  A light blue shirt, dark trousers, black leather shoes.
+# A real photo of the person's face (Characters page → Upload photo, only with their consent).
+# Sent with every sheet and keyframe.
+# face_ref: sheet_v1.jpg
 # Image style: a key under `styles:` in library/prompt_templates.yaml (e.g. cartoon, realistic).
 # Leave empty for the default. Keep one style per video.
 style: realistic
 # Filled by `parhelion character <name> --approve vN`. Used as reference images.
 approved_sheets: []
+# Other looks of the same person (outfit and/or build); face reference, style and voice are shared.
+# A video picks one in shotlist.json `looks` (Shots tab). Approve into a look with --approve vN --look <key>.
+# looks:
+#   anchor:
+#     label: 主播
+#     outfit: >-
+#       A dark navy suit jacket, white shirt, dark tie, dark trousers, black shoes.
+#     style: null          # a style for this look only, e.g. cartoon3d (null = the character's style)
+#     use_face_ref: true   # false for a different-style look: don't send the real face photo
+#     approved_sheets: []

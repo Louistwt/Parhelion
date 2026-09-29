@@ -188,3 +188,35 @@ def test_face_ref_and_location_ref_api(client, root):
     assert client.get("/api/projects/2026-09-24-demo/shots").json()["location_ref"] == "keyframes/S01_v1.png"
     assert client.put("/api/projects/2026-09-24-demo/shotlist", json={"location_ref": ""}).status_code == 200
     assert client.get("/api/projects/2026-09-24-demo/shots").json()["location_ref"] is None
+
+
+def test_stop_queued_job_and_no_duplicate_jobs(client, root):
+    import threading
+
+    gate = threading.Event()
+    real = client.provider.generate
+
+    def slow(job, endpoint):
+        gate.wait(5)
+        return real(job, endpoint)
+
+    client.provider.generate = slow
+    first = client.post("/api/jobs", json={"kind": "keyframes", "project": PID, "n": 1}).json()
+    # same kind + project while the first is still going: refused, so a double click can't pay twice
+    r = client.post("/api/jobs", json={"kind": "keyframes", "project": PID, "n": 1})
+    assert r.status_code == 409 and "already" in r.json()["detail"]
+    stopped = client.post(f"/api/jobs/{first['id']}/cancel").json()
+    assert stopped["status"] in ("queued", "running", "cancelled")
+    gate.set()
+    client.app.state.jobs.wait_idle()
+    job = client.get(f"/api/jobs/{first['id']}").json()
+    assert job["status"] == "cancelled"
+    assert len(client.provider.calls) <= 1  # at most the request already in flight
+    assert client.post("/api/jobs/nope/cancel").status_code == 404
+
+
+def test_request_minimum_in_estimate():
+    from parhelion.cost import EstimateItem
+    assert EstimateItem("S04 lip-sync", "fal-ai/latentsync", 4.5, "seconds", 0.005, 0.20).cost == 0.2
+    assert EstimateItem("long", "fal-ai/latentsync", 60, "seconds", 0.005, 0.20).cost == 0.3
+    assert EstimateItem("clip", "x", 5, "seconds", 0.042).cost == 0.21

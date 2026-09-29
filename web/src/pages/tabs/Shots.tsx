@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRightIcon, ImageIcon, ListVideoIcon, RotateCcwIcon, SaveIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -20,12 +21,15 @@ import { CopyButton, Empty, ErrorBox, Loading } from "../../components/common";
 import { LintPanel } from "../../components/LintPanel";
 import en from "../../locales/en/shots";
 
-type ShotsResp = { shots: Shot[] | null; framings: string[]; location_ref: string | null };
+type ShotsResp = { shots: Shot[] | null; framings: string[]; location_ref: string | null; looks?: Record<string, string> };
 type Form = {
   framing: string; setting: string; action: string; notes: string; characters: string[]; props: string[];
-  motion_prompt: string; camera: string; on_camera_speech: boolean;
+  motion_prompt: string; camera: string; on_camera_speech: boolean; looks: Record<string, string>;
 };
-type Who = { name: string; label: string };
+/** looks: the character's other looks (outfits); the main look is always available as "default". */
+type Who = { name: string; label: string; looks: { key: string; label: string }[] };
+const DEFAULT_LOOK = "default";
+const VIDEO_LOOK = "__video";
 
 // Values stay English (they go to the video model); labels come from shots.cameras.
 const CAMERAS = Object.keys(en.cameras) as (keyof typeof en.cameras)[];
@@ -33,7 +37,7 @@ const MIN_S = 3, MAX_S = 8;
 
 const toForm = (s: Shot): Form => ({
   framing: s.framing, setting: s.setting, action: s.action, notes: s.notes, characters: s.characters, props: s.props,
-  motion_prompt: s.motion_prompt, camera: s.camera, on_camera_speech: s.on_camera_speech,
+  motion_prompt: s.motion_prompt, camera: s.camera, on_camera_speech: s.on_camera_speech, looks: s.looks ?? {},
 });
 const same = (a: Form, b: Form) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -41,6 +45,8 @@ type TFn = ReturnType<typeof useTranslation>["t"];
 /** Framing keys come from library/prompt_templates.yaml; unknown keys are shown as-is. */
 const framingLabel = (t: TFn, f: string) => (f in en.framings ? t(`shots.framings.${f as keyof typeof en.framings}`) : f);
 const cameraLabel = (t: TFn, c: string) => (c in en.cameras ? t(`shots.cameras.${c as keyof typeof en.cameras}`) : c);
+const lookLabel = (t: TFn, w: Who | undefined, key: string) =>
+  key === DEFAULT_LOOK ? t("shots.lookDefault") : (w?.looks.find((l) => l.key === key)?.label ?? key);
 const speakerLabel = (t: TFn, who: Who[], name: string) =>
   who.find((w) => w.name === name)?.label ?? (name === "narrator" ? t("shots.narrator") : name);
 
@@ -124,14 +130,19 @@ function ShotHeader({ id, shot, form, dirty, who }: { id: string; shot: Shot; fo
   );
 }
 
-function ShotEditor({ shot, form, setForm, framings, who, dirty, onSave, saving, onReset }: {
-  shot: Shot; form: Form; setForm: (f: Form) => void; framings: string[]; who: Who[];
+function ShotEditor({ shot, form, setForm, framings, who, videoLooks, dirty, onSave, saving, onReset }: {
+  shot: Shot; form: Form; setForm: (f: Form) => void; framings: string[]; who: Who[]; videoLooks: Record<string, string>;
   dirty: boolean; onSave: () => void; saving: boolean; onReset: () => void;
 }) {
   const { t } = useTranslation();
   const fid = (k: string) => `${shot.id}-${k}`;
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm({ ...form, [k]: v });
   const cameras = [...new Set([...CAMERAS, ...(form.camera ? [form.camera] : [])])];
+  const withLooks = who.filter((w) => form.characters.includes(w.name) && w.looks.length);
+  const setLook = (name: string, v: string) => {
+    const { [name]: _old, ...rest } = form.looks;
+    set("looks", v === VIDEO_LOOK ? rest : { ...rest, [name]: v });
+  };
   return (
     <div className="flex flex-col gap-4 pt-1">
       {shot.lines.length > 0 && (
@@ -167,6 +178,24 @@ function ShotEditor({ shot, form, setForm, framings, who, dirty, onSave, saving,
           <PropsInput id={fid("props")} value={form.props} onChange={(v) => set("props", v)} />
         </Field>
       </div>
+      {withLooks.length > 0 && (
+        <Field label={t("shots.fields.looks")} hint={t("shots.fields.looksHint")}>
+          <div className="flex flex-wrap gap-3">
+            {withLooks.map((w) => (
+              <div key={w.name} className="flex items-center gap-2 text-sm">
+                <span>{w.label}</span>
+                <Select value={form.looks[w.name] ?? VIDEO_LOOK} onValueChange={(v) => setLook(w.name, v)}>
+                  <SelectTrigger aria-label={t("shots.fields.lookFor", { name: w.label })} className="w-52"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={VIDEO_LOOK}>{t("shots.fields.lookVideo", { look: lookLabel(t, w, videoLooks[w.name] ?? DEFAULT_LOOK) })}</SelectItem>
+                    {[DEFAULT_LOOK, ...w.looks.map((l) => l.key)].map((k) => <SelectItem key={k} value={k}>{lookLabel(t, w, k)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </Field>
+      )}
       <Section title={t("shots.fields.motionSection")}>
         <div className="grid gap-4 md:grid-cols-[1fr_220px]">
           <Field label={t("shots.fields.motion")} hint={t("shots.fields.motionHint")} htmlFor={fid("motion")}>
@@ -213,7 +242,10 @@ export function ShotsTab({ id }: { id: string }) {
   const shots = q.data?.shots ?? [];
   const formOf = (s: Shot) => drafts[s.id] ?? toForm(s);
   const dirtyIds = shots.filter((s) => drafts[s.id] && !same(drafts[s.id], toForm(s))).map((s) => s.id);
-  const who: Who[] = (chars.data?.characters ?? []).map((c) => ({ name: c.name, label: c.display_name || c.name }));
+  const who: Who[] = (chars.data?.characters ?? []).map((c) => ({
+    name: c.name, label: c.display_name || c.name,
+    looks: Object.entries(c.looks ?? {}).map(([key, l]) => ({ key, label: l.label || key })),
+  }));
 
   const save = useMutation({
     mutationFn: async (ids: string[]) => {
@@ -256,6 +288,10 @@ export function ShotsTab({ id }: { id: string }) {
   const total = shots.length ? shots[shots.length - 1].end : 0;
   const roomOptions = shots.filter((s) => s.approved_keyframe).map((s) => `keyframes/${s.approved_keyframe}`);
   const room = q.data.location_ref;
+  const videoLooks = q.data.looks ?? {};
+  const inVideo = new Set(shots.flatMap((s) => s.characters));
+  const lookWho = who.filter((w) => inVideo.has(w.name) && w.looks.length);
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -281,6 +317,15 @@ export function ShotsTab({ id }: { id: string }) {
             </Select>
             <span className="text-muted-foreground">{t("shots.roomHint")}</span>
           </div>
+          {lookWho.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">{t("shots.looks")}</span>
+              {lookWho.map((w) => (
+                <Badge key={w.name} variant="secondary">{w.label}: {lookLabel(t, w, videoLooks[w.name] ?? DEFAULT_LOOK)}</Badge>
+              ))}
+              <Link to={`/p/${id}/brief`} className="text-primary-ink underline-offset-2 hover:underline">{t("shots.looksHint")}</Link>
+            </div>
+          )}
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" aria-label={t("shots.timeline")}>
             {shots.map((s, i) => (
               <button key={s.id} type="button" title={`${s.id} · ${t("common.seconds", { n: s.duration.toFixed(1) })}`}
@@ -304,7 +349,7 @@ export function ShotsTab({ id }: { id: string }) {
                   {/* h-auto: nested collapsibles change the height after the row opens */}
                   <AccordionContent className="h-auto pb-4">
                     <ShotEditor
-                      shot={s} form={form} framings={q.data!.framings} who={who} dirty={dirty}
+                      shot={s} form={form} framings={q.data!.framings} who={who} videoLooks={videoLooks} dirty={dirty}
                       setForm={(f) => setDrafts((d) => ({ ...d, [s.id]: f }))}
                       onReset={() => setDrafts((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== s.id)))}
                       onSave={() => save.mutate([s.id])} saving={save.isPending}

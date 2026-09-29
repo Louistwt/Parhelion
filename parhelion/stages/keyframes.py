@@ -12,7 +12,7 @@ from ..schemas import Shot, ShotList
 from ..versioning import IMAGE_EXTS, discard as discard_file, find_version
 from .imagegen import PlannedJob
 from .imagegen_plan import RunPlan
-from .prompts import compose_shot_prompt, load_character, reference_images, script_style
+from .prompts import compose_shot_prompt, reference_images, script_style, shot_characters
 
 
 def location_path(folder: Path, shotlist: ShotList) -> Path | None:
@@ -49,11 +49,12 @@ def build(
     script_chars = proj.load_script(folder).characters if (folder / "script.json").exists() else []
     fallback_style = script_style(paths, templates, script_chars)
     room = location_path(folder, shotlist)
+    cast = proj.load_project(folder).cast
     jobs, notes = [], []
     if not model.get("verified"):
         notes.append(f"Model {model['key']!r} is marked unverified in config/models.yaml.")
     for shot in shots:
-        chars = [load_character(paths, c) for c in shot.characters]
+        chars = shot_characters(paths, shotlist, shot, cast)  # each in the look it wears in this shot
         refs = [p for c in chars for p in reference_images(paths, c)] + ([room] if room else [])  # order = reference_legend
         if chars and not refs:
             notes.append(f"{shot.id}: no approved character sheet — generating without references.")

@@ -1,0 +1,37 @@
+name: smallpig
+display_name: 小朱
+prompt_block: An East Asian man in his mid-30s to early 40s, with a rounded face shape
+  and smooth fair skin. He has short, neatly styled black hair parted to one side
+  with soft sweeping bangs across his forehead. He maintains a calm, neutral facial
+  expression, with his lips closed in a relaxed, straight line and his dark brown
+  eyes looking forward without expression lines or crinkles. He wears classic thin-rimmed
+  metal glasses with clear, transparent lenses and a simple frame. He has neatly defined
+  dark eyebrows, a soft nose with a rounded bridge, and a gentle jawline. Average
+  build, average height. He wears a crisp white long-sleeved shirt with the sleeves
+  rolled to the forearm and the top button undone, navy trousers, a black belt and
+  black leather shoes.
+style: realistic
+face_ref: sheet_v11.jpg
+approved_sheets:
+- sheet_v11.jpg
+- sheet_v12.jpg
+voice:
+  voice_id: Chinese (Mandarin)_Reliable_Executive
+  speed: 1.0
+  pitch: 0
+  emotion: null
+looks:
+  anchor:
+    label: 主播
+    prompt_block: An East Asian man in his mid-30s to early 40s, with a rounded face
+      shape and smooth fair skin. He has short, neatly styled black hair parted to
+      one side with soft sweeping bangs across his forehead. He maintains a calm,
+      neutral facial expression, with his lips closed in a relaxed, straight line
+      and his dark brown eyes looking forward without expression lines or crinkles.
+      He wears classic thin-rimmed metal glasses with clear, transparent lenses and
+      a simple frame. He has neatly defined dark eyebrows, a soft nose with a rounded
+      bridge, and a gentle jawline. Average build, average height. He wears a well-fitted
+      dark navy suit jacket, buttoned, over a crisp white shirt with a plain dark
+      navy tie, matching dark navy trousers, a black belt and polished black leather
+      shoes; a neat, formal television news presenter look.
+    approved_sheets: []

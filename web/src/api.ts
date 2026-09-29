@@ -29,6 +29,7 @@ export const api = {
   get: <T>(url: string) => request<T>("GET", url),
   post: <T>(url: string, body?: unknown) => request<T>("POST", url, body ?? {}),
   put: <T>(url: string, body: unknown) => request<T>("PUT", url, body),
+  delete: <T>(url: string) => request<T>("DELETE", url),
 };
 
 export const fileUrl = (area: "projects" | "library", ...parts: string[]) =>
@@ -135,13 +136,26 @@ export interface Voice {
 export interface Character {
   name: string;
   display_name: string;
-  prompt_block: string;
+  prompt_block: string; // the person (face, hair, build), shared by every look
+  outfit: string; // main look's clothes
   style: string | null;
   face_ref: string | null;
   approved_sheets: string[];
   sheets: string[];
   voice: Voice | null;
   voice_previews: string[];
+  looks: Record<string, Look>; // other outfits/builds; "default" = the fields above
+  reference: string | null; // main look's pinned reference
+  sheet_names: Record<string, string>; // file -> human name
+}
+
+export interface Look {
+  label: string;
+  outfit: string;
+  style: string | null; // null = the character's style
+  use_face_ref: boolean;
+  reference: string | null; // pinned keyframe reference (null = latest approved)
+  approved_sheets: string[];
 }
 
 export interface CharacterList {
@@ -220,6 +234,7 @@ export interface Shot {
   motion_prompt: string;
   camera: string;
   approved_keyframe: string | null;
+  looks: Record<string, string>; // character -> look for this shot only
   lines: { id: string; speaker: string; text: string }[];
   prompt: string;
 }
@@ -248,6 +263,9 @@ export interface RunRequest {
   model?: string;
   use_approved?: boolean;
   include_approved?: boolean;
+  look?: string;
+  face_first?: boolean; // character: face portrait first, then the sheet uses it
+  face_only?: boolean; // character: only the face portrait
 }
 
 export interface Estimate {
@@ -276,7 +294,8 @@ export interface Job {
   project: string;
   labels: string[];
   estimate: number;
-  status: "queued" | "running" | "done" | "failed" | "blocked";
+  status: "queued" | "running" | "done" | "failed" | "blocked" | "cancelled";
+  stopping: boolean; // Stop pressed while running
   created: string;
   finished: string | null;
   progress: { done: number; total: number };
